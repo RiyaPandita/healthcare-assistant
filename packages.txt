@@ -1,32 +1,13 @@
 python3-dev
 build-essential
-
-# Image Processing
 tesseract-ocr
 libtesseract-dev
 tesseract-ocr-eng
 libtesseract5
-
-# PDF Processing
-poppler-utils
-python3-poppler
-
-# OpenCV and GUI Dependencies
 libgl1
 libglib2.0-0
 libsm6
 libxext6
 libxrender1
-
-# Font and Cairo Dependencies
 libpangocairo-1.0-0
 libcairo2
-libfreetype6-dev
-libharfbuzz-dev
-
-# Additional System Libraries
-libjpeg-dev
-libpng-dev
-zlib1g-dev
-libtiff5-dev
-libxcb1-dev
