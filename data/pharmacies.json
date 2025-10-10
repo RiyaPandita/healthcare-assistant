@@ -1,0 +1,18 @@
+[
+  {
+    "id": "ph001",
+    "name": "MedQuick Andheri",
+    "lat": 19.12,
+    "lon": 72.84,
+    "services": ["24x7", "delivery"],
+    "delivery_km": 12
+  },
+  {
+    "id": "ph002",
+    "name": "CareFast Bandra",
+    "lat": 19.06,
+    "lon": 72.83,
+    "services": ["delivery"],
+    "delivery_km": 8
+  }
+]

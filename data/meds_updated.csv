@@ -1,0 +1,9 @@
+sku,drug_name,indication,age_min,contra_allergy_keywords,form,strength,frequency,max_daily_dose,category,warnings,price
+OTC001,Paracetamol,fever;pain;headache,6,paracetamol;acetaminophen,tablet,500mg,q6h-q8h,4000mg,antipyretic,"liver disease;alcohol use",10.50
+OTC002,Cough Syrup,cough;cold,12,dextromethorphan;guaifenesin,syrup,100ml,q6h-q8h,4doses,antitussive,"drowsiness;avoid alcohol",85.75
+OTC003,Cetirizine,allergy;rhinitis,6,cetirizine;antihistamine,tablet,10mg,q24h,10mg,antihistamine,"drowsiness;dry mouth",45.20
+OTC004,Throat Lozenges,sore throat;cough,4,benzocaine;menthol,lozenge,1unit,q2h-q4h,12units,local antiseptic,"local irritation",25.00
+OTC005,Antacid Suspension,acidity;heartburn,12,magnesium;aluminum,liquid,10ml,q8h-q12h,40ml,antacid,"kidney disease",65.30
+OTC006,Vitamin C,immunity;cold,4,ascorbic acid,chewable,500mg,q24h,1000mg,supplement,"kidney stones",120.00
+OTC007,Electrolyte Solution,dehydration;fever,2,nil,powder,21.8g,prn,6sachets,rehydration,"kidney disease",18.50
+OTC008,Cold Relief Tablet,cold;congestion,12,phenylephrine;caffeine,tablet,combo,q12h,4tablets,decongestant,"hypertension;heart disease",55.90

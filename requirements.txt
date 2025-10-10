@@ -1,0 +1,14 @@
+# requirements.txt
+streamlit==1.38.0
+pandas==2.2.2
+numpy==1.26.4
+langchain==0.2.15
+langgraph==0.2.23
+google-generativeai==0.7.2
+pillow==10.4.0
+pdfminer.six==20221105
+pytesseract==0.3.10
+opencv-python==4.10.0.84
+scikit-image==0.24.0
+geopy==2.4.1
+python-dotenv==1.0.1

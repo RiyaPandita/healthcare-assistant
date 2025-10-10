@@ -1,0 +1,3 @@
+doctor_id,name,specialty,tele_slot_iso8601
+doc001,Dr. Asha Menon,General Medicine,2025-10-11T10:30:00Z
+doc002,Dr. Rohan Patel,Pulmonology,2025-10-11T11:00:00Z

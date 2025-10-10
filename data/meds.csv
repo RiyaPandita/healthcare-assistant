@@ -1,0 +1,3 @@
+sku,drug_name,indication,age_min,contra_allergy_keywords
+OTC001,Paracetamol,fever,6,paracetamol;acetaminophen
+OTC002,Cough Syrup,cough,12,dextromethorphan;guaifenesin

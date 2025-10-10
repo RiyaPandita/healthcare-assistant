@@ -1,0 +1,78 @@
+paths:
+  data:
+    meds: data/meds_updated.csv
+    interactions: data/interactions_updated.csv
+    doctors: data/doctors_updated.csv
+    pharmacies: data/pharmacies_updated.json
+    inventory: data/inventory_updated.csv
+    zipcodes: data/zipcodes_updated.csv
+
+model:
+  provider: gemini
+  model_name: gemini-2.5-flash
+  timeout: 30
+  retries: 3
+  backoff_factor: 2
+
+security:
+  encryption_enabled: true
+  max_file_size_mb: 10
+  allowed_file_types:
+    - png
+    - jpg
+    - jpeg
+    - pdf
+  pii_patterns:
+    - phone: '\b\d{10}\b'
+    - email: '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}'
+    - aadhaar: '\b\d{12}\b'
+    - pan: '[A-Z]{5}[0-9]{4}[A-Z]'
+
+pharmacy:
+  max_delivery_radius_km: 15
+  base_delivery_fee: 25
+  fee_per_km: 5
+  min_order_amount: 100
+  delivery_speeds:
+    normal: 30
+    express: 15
+  service_charges:
+    normal: 0
+    express: 50
+
+medical:
+  min_confidence_threshold: 0.3
+  severity_thresholds:
+    mild: 0.3
+    moderate: 0.6
+    severe: 0.8
+  auto_escalation_conditions:
+    - SpO2 < 92%
+    - severe chest pain
+    - difficulty breathing
+  max_otc_suggestions: 3
+  refresh_interval_hours: 24
+
+agents:
+  imaging:
+    dummy_model_weights:
+      normal: 0.6
+      pneumonia: 0.25
+      covid_suspect: 0.15
+    confidence_variation: 0.1
+
+  therapy:
+    max_otc_suggestions: 3
+    interaction_severity_levels:
+      - mild
+      - moderate
+      - severe
+
+  pharmacy:
+    delivery_speed_kmph: 30
+    min_delivery_fee: 25
+    fee_per_km: 5
+
+  doctor:
+    auto_escalation_threshold: 0.7
+    max_wait_time_minutes: 30
