@@ -1,8 +1,13 @@
-tesseract-ocr
-libgl1
 python3-dev
 build-essential
+tesseract-ocr
 libtesseract-dev
 tesseract-ocr-eng
 libtesseract5
+libgl1
+libglib2.0-0
+libsm6
+libxext6
+libxrender1
 libpangocairo-1.0-0
+libcairo2

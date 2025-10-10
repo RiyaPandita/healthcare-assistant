@@ -1,20 +1,29 @@
 # requirements.txt
-streamlit==1.27.2
-pandas==2.0.3
-numpy==1.25.2
-python-dotenv==1.0.0
-google-generativeai==0.3.1
-pillow==9.5.0
-pdfminer.six==20221105
-pytesseract==0.3.10
-opencv-python-headless==4.8.0.76
-scikit-image==0.21.0
-geopy==2.4.0
-pyyaml==6.0.1
-python-multipart==0.0.6
+--index-url https://pypi.org/simple
 
-# Added dependencies for better compatibility
+# Core dependencies with wheels available for Python 3.13
+streamlit>=1.28.0
+numpy>=1.26.1  # Latest version without distutils dependency
+pandas>=2.1.2  # Compatible with numpy 1.26
+python-dotenv>=1.0.0
+google-generativeai>=0.3.2
+pillow>=10.1.0
+pdfminer.six>=20221105
+pytesseract>=0.3.10
+
+# Using binary wheels where possible
+opencv-python-headless>=4.8.1.78
+scikit-image>=0.22.0
+geopy>=2.4.1
+pyyaml>=6.0.1
+python-multipart>=0.0.6
+
+# Required by Streamlit
 protobuf>=4.24.4
 click>=8.0.0
-altair>=4.0.0
+altair>=5.1.2
 typing-extensions>=4.8.0
+
+# Build dependencies
+setuptools>=69.0.0
+wheel>=0.41.3
