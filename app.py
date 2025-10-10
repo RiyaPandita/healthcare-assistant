@@ -14,7 +14,14 @@ from utils.config import Config
 
 # Load environment variables
 load_dotenv()
-GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY") or "DUMMY"
+
+# Configure Gemini API
+GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY") 
+if not GEMINI_API_KEY:
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    st.error("⚠️ GEMINI_API_KEY is not set. Please set it in your environment variables or Streamlit secrets.")
+    st.stop()
 
 
 st.set_page_config(page_title="Healthcare Assistant (Demo)", layout="wide")
