@@ -12,4 +12,3 @@ libxrender1
 libpangocairo-1.0-0
 libcairo2
 poppler-utils
-python3-poppler
