@@ -22,11 +22,16 @@ class DoctorAgent(BaseAgent):
             self.doctors = pd.read_csv(doctors_path)
             
             # Configure AI model
-            if api_key is None:
-                api_key = os.getenv("GEMINI_API_KEY")
-            genai.configure(api_key=api_key)
+            if not api_key:
+                raise ValueError("GEMINI_API_KEY is required")
             
-            model_name = model_settings.get('model_name', 'gemini-2.5-flash')
+            # Configure with explicit credentials
+            genai.configure(
+                api_key=api_key,
+                transport="rest"  # Force REST API instead of gRPC
+            )
+            
+            model_name = model_settings.get('model_name', 'gemini-pro')
             self.model = genai.GenerativeModel(model_name)
             
         except Exception as e:

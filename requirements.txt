@@ -6,7 +6,7 @@ streamlit>=1.28.0
 numpy>=1.26.1  # Latest version without distutils dependency
 pandas>=2.1.2  # Compatible with numpy 1.26
 python-dotenv>=1.0.0
-google-generativeai>=0.3.2
+google-generativeai==0.3.1
 pillow>=10.1.0
 pdfminer.six>=20221105
 pytesseract>=0.3.10

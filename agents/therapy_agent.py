@@ -22,12 +22,17 @@ class TherapyAgent(BaseAgent):
             raise
             
         # Configure AI model
-        if api_key is None:
-            api_key = os.getenv("GEMINI_API_KEY")
-        genai.configure(api_key=api_key)
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY is required")
+        
+        # Configure with explicit credentials
+        genai.configure(
+            api_key=api_key,
+            transport="rest"  # Force REST API instead of gRPC
+        )
         
         model_settings = self.config.settings.get('model', {})
-        model_name = model_settings.get('model_name', 'gemini-2.5-flash')
+        model_name = model_settings.get('model_name', 'gemini-pro')
         self.model = genai.GenerativeModel(model_name)
         
         # Load medical settings
