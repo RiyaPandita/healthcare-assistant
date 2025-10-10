@@ -1,16 +1,20 @@
 # requirements.txt
-streamlit==1.24.0
-pandas==1.5.3
-numpy==1.23.5
+streamlit==1.27.2
+pandas==2.0.3
+numpy==1.25.2
 python-dotenv==1.0.0
-google-generativeai==0.2.0
+google-generativeai==0.3.1
 pillow==9.5.0
 pdfminer.six==20221105
 pytesseract==0.3.10
-opencv-python-headless==4.7.0.72
-scikit-image==0.19.3
-geopy==2.3.0
+opencv-python-headless==4.8.0.76
+scikit-image==0.21.0
+geopy==2.4.0
 pyyaml==6.0.1
 python-multipart==0.0.6
-setuptools==65.5.1
-wheel==0.40.0
+
+# Added dependencies for better compatibility
+protobuf>=4.24.4
+click>=8.0.0
+altair>=4.0.0
+typing-extensions>=4.8.0
