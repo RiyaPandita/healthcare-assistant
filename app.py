@@ -302,60 +302,60 @@ if submitted:
             Next Available Slot: {doctor_info.get('tele_slot_iso8601', 'Contact for scheduling')}
             """)
 
-    # # Technical Details (Hidden by default)
-    # with st.expander("� Technical Details", expanded=False):
-    #     st.caption("System events and processing timeline for technical reference")
+    # Technical Details (Hidden by default)
+    with st.expander("� Technical Details", expanded=False):
+        st.caption("System events and processing timeline for technical reference")
         
-    #     # Filter and group events by status
-    #     events = result.get("events", [])
-    #     if events:
-    #         # Group events by agent
-    #         agent_events = {}
-    #         for event in events:
-    #             try:
-    #                 agent = event.get('agent', 'system')
-    #                 if agent not in agent_events:
-    #                     agent_events[agent] = []
-    #                 agent_events[agent].append(event)
-    #             except Exception:
-    #                 continue
+        # Filter and group events by status
+        events = result.get("events", [])
+        if events:
+            # Group events by agent
+            agent_events = {}
+            for event in events:
+                try:
+                    agent = event.get('agent', 'system')
+                    if agent not in agent_events:
+                        agent_events[agent] = []
+                    agent_events[agent].append(event)
+                except Exception:
+                    continue
 
-    #         # Display events by agent in tabs
-    #         if agent_events:
-    #             agent_tabs = st.tabs([f"📊 {agent.title()}" for agent in agent_events.keys()])
-    #             for tab, (agent, events) in zip(agent_tabs, agent_events.items()):
-    #                 with tab:
-    #                     for event in events:
-    #                         try:
-    #                             ts = datetime.fromisoformat(event.get('timestamp', '')).strftime('%H:%M:%S')
-    #                             event_type = event.get('type', 'unknown')
-    #                             data = event.get('data', {})
+            # Display events by agent in tabs
+            if agent_events:
+                agent_tabs = st.tabs([f"📊 {agent.title()}" for agent in agent_events.keys()])
+                for tab, (agent, events) in zip(agent_tabs, agent_events.items()):
+                    with tab:
+                        for event in events:
+                            try:
+                                ts = datetime.fromisoformat(event.get('timestamp', '')).strftime('%H:%M:%S')
+                                event_type = event.get('type', 'unknown')
+                                data = event.get('data', {})
                                 
-    #                             # Determine event status for styling
-    #                             status = "success"
-    #                             if "error" in event_type.lower() or "fail" in event_type.lower():
-    #                                 status = "error"
-    #                             elif "warning" in event_type.lower() or "alert" in event_type.lower():
-    #                                 status = "warning"
+                                # Determine event status for styling
+                                status = "success"
+                                if "error" in event_type.lower() or "fail" in event_type.lower():
+                                    status = "error"
+                                elif "warning" in event_type.lower() or "alert" in event_type.lower():
+                                    status = "warning"
                                 
-    #                             # Format event data
-    #                             if isinstance(data, dict):
-    #                                 data_summary = ', '.join(f"**{k}**: {v}" for k, v in data.items() 
-    #                                                     if not isinstance(v, (dict, list)))
-    #                             else:
-    #                                 data_summary = str(data)
+                                # Format event data
+                                if isinstance(data, dict):
+                                    data_summary = ', '.join(f"**{k}**: {v}" for k, v in data.items() 
+                                                        if not isinstance(v, (dict, list)))
+                                else:
+                                    data_summary = str(data)
                                 
-    #                             # Display styled event
-    #                             st.markdown(f"""
-    #                                 <div class="timeline-event {status}">
-    #                                     <small>{ts}</small><br>
-    #                                     <strong>{event_type}</strong><br>
-    #                                     {data_summary}
-    #                                 </div>
-    #                             """, unsafe_allow_html=True)
-    #                         except Exception:
-    #                             continue
+                                # Display styled event
+                                st.markdown(f"""
+                                    <div class="timeline-event {status}">
+                                        <small>{ts}</small><br>
+                                        <strong>{event_type}</strong><br>
+                                        {data_summary}
+                                    </div>
+                                """, unsafe_allow_html=True)
+                            except Exception:
+                                continue
 
-    # Final disclaimer
+    #Final disclaimer
     st.markdown("---")
     st.info("🔔 This is an educational demonstration. All recommendations should be verified with qualified healthcare professionals.")
