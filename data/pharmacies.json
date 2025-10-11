@@ -1,18 +1,47 @@
 [
-  {
-    "id": "ph001",
-    "name": "MedQuick Andheri",
-    "lat": 19.12,
-    "lon": 72.84,
-    "services": ["24x7", "delivery"],
-    "delivery_km": 12
-  },
-  {
-    "id": "ph002",
-    "name": "CareFast Bandra",
-    "lat": 19.06,
-    "lon": 72.83,
-    "services": ["delivery"],
-    "delivery_km": 8
-  }
+    {
+        "id": "ph001",
+        "name": "MedQuick Andheri",
+        "lat": 19.12,
+        "lon": 72.84,
+        "address": "Shop 4, Ground Floor, Mahavir Plaza, Andheri West",
+        "services": ["24x7", "delivery", "teleconsult"],
+        "delivery_km": 12,
+        "contact": "+91-XXXXXXXXXX",
+        "timings": "24 Hours",
+        "rating": 4.5,
+        "features": ["temperature_controlled", "certified_staff", "cold_chain"],
+        "payment_methods": ["cash", "card", "upi", "insurance"],
+        "min_delivery_amount": 100
+    },
+    {
+        "id": "ph002",
+        "name": "HealthFirst Bandra",
+        "lat": 19.05,
+        "lon": 72.83,
+        "address": "Hill Road, Bandra West",
+        "services": ["delivery", "lab_collection", "health_checkup"],
+        "delivery_km": 8,
+        "contact": "+91-XXXXXXXXXX",
+        "timings": "8 AM - 11 PM",
+        "rating": 4.3,
+        "features": ["certified_staff", "health_consulting"],
+        "payment_methods": ["cash", "card", "upi"],
+        "min_delivery_amount": 200
+    },
+    {
+        "id": "ph003",
+        "name": "WellCare Powai",
+        "lat": 19.11,
+        "lon": 72.90,
+        "address": "Hiranandani Gardens, Powai",
+        "services": ["24x7", "delivery", "lab_collection", "vaccination"],
+        "delivery_km": 10,
+        "contact": "+91-XXXXXXXXXX",
+        "timings": "24 Hours",
+        "rating": 4.7,
+        "features": ["temperature_controlled", "certified_staff", "vaccination_center"],
+        "payment_methods": ["cash", "card", "upi", "insurance", "corporate"],
+        "min_delivery_amount": 150
+    }
 ]

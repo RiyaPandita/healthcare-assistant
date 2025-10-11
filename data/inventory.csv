@@ -1,4 +1,11 @@
-pharmacy_id,sku,drug_name,form,strength,price,qty
-ph001,OTC001,Paracetamol,tablet,500 mg,25,50
-ph001,OTC002,Cough Syrup,syrup,100 ml,80,20
-ph002,OTC001,Paracetamol,tablet,500 mg,24,40
+pharmacy_id,sku,drug_name,form,strength,batch_no,expiry_date,price,qty,min_qty,max_qty
+ph001,OTC001,Paracetamol,tablet,500mg,B2025001,2026-12,10.50,500,1,50
+ph001,OTC002,Cough Syrup,syrup,100ml,B2025002,2026-06,85.75,100,1,10
+ph001,OTC003,Cetirizine,tablet,10mg,B2025003,2027-01,45.20,200,1,30
+ph002,OTC001,Paracetamol,tablet,500mg,B2025004,2026-12,11.00,300,1,50
+ph002,OTC004,Throat Lozenges,lozenge,1unit,B2025005,2026-03,25.00,150,1,20
+ph002,OTC005,Antacid Suspension,liquid,10ml,B2025006,2026-09,65.30,80,1,10
+ph003,OTC001,Paracetamol,tablet,500mg,B2025007,2026-12,10.00,1000,1,100
+ph003,OTC006,Vitamin C,chewable,500mg,B2025008,2026-08,120.00,200,1,30
+ph003,OTC007,Electrolyte Solution,powder,21.8g,B2025009,2026-11,18.50,500,1,50
+ph003,OTC008,Cold Relief Tablet,tablet,combo,B2025010,2026-07,55.90,150,1,20
