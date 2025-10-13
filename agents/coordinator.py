@@ -32,18 +32,37 @@ class Coordinator:
         ther = self.therapy.run(ther_input)
         all_events += ther.events
 
-        # choose items to order (mock: first OTC option)
-        items = [{"sku": ther.output["otc_options"][0]["sku"], "qty": 1}] if ther.output["otc_options"] else []
-        ph_input = {"pincode": input_payload.get("pincode"), "items": items, "red_flags": ther.output["red_flags"]}
+        # choose items to order (mock: choose up to configured number of OTC options)
+        items = []
+        max_suggestions = self.pharmacy.config.settings.get('pharmacy', {}).get('max_otc_suggestions',
+                                                                    self.therapy.config.settings.get('therapy', {}).get('max_otc_suggestions', 3))
+        if ther.output.get("otc_options") and len(ther.output["otc_options"]) > 0:
+            # take up to max_suggestions OTC options
+            for opt in ther.output["otc_options"][:max_suggestions]:
+                # send both sku and drug_name to pharmacy so the pharmacy agent can
+                # resolve inventory by either SKU or drug name (helps when SKU
+                # conventions differ between meds.csv and inventory.csv)
+                items.append({
+                    "sku": opt.get("sku"),
+                    "drug_name": opt.get("drug_name"),
+                    "qty": 1
+                })
+        
+        ph_input = {
+            "pincode": input_payload.get("pincode"), 
+            "items": items, 
+            "red_flags": ther.output.get("red_flags", [])
+        }
         ph = self.pharmacy.run(ph_input)
         all_events += ph.events
 
         # check escalation
-        top_prob = max(img.output["condition_probs"].values()) if img.output.get("condition_probs") else 0
-        need_escalation = (top_prob < CONFIDENCE_THRESHOLD) or bool(ther.output["red_flags"])
+        top_prob = max(img.output.get("condition_probs", {}).values()) if img.output.get("condition_probs") else 0
+        red_flags = ther.output.get("red_flags", [])
+        need_escalation = (top_prob < CONFIDENCE_THRESHOLD) or bool(red_flags)
         escalation = {}
         if need_escalation:
-            doc_in = {**img.output, "red_flags": ther.output["red_flags"]}
+            doc_in = {**img.output, "red_flags": red_flags}
             esc = self.doctor.run(doc_in)
             all_events += esc.events
             escalation = esc.output

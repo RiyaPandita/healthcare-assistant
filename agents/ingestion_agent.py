@@ -28,13 +28,13 @@ class IngestionAgent(BaseAgent):
             # Check file type
             allowed_types = self.config.settings.get('security', {}).get('allowed_file_types', ['png', 'jpg', 'jpeg'])
             if not self.security.validate_file_type(xray_path, allowed_types):
-                self.logger.log_error("XRAY_VALIDATION", f"Invalid file type for {xray_path}")
+                self.error(f"XRAY_VALIDATION: Invalid file type for {xray_path}")
                 return False
                 
             # Check file size
             max_size = self.config.settings.get('security', {}).get('max_file_size_mb', 10) * 1024 * 1024
             if os.path.getsize(xray_path) > max_size:
-                self.logger.log_error("XRAY_VALIDATION", f"File too large: {xray_path}")
+                self.error(f"XRAY_VALIDATION: File too large: {xray_path}")
                 return False
                 
             # Try opening the image to verify it's valid
@@ -43,7 +43,7 @@ class IngestionAgent(BaseAgent):
             return True
             
         except Exception as e:
-            self.logger.log_error("XRAY_VALIDATION", str(e))
+            self.error(f"XRAY_VALIDATION: {str(e)}")
             return False
 
     def _extract_pdf_text(self, pdf_path: Optional[str]) -> str:
@@ -60,7 +60,7 @@ class IngestionAgent(BaseAgent):
                     text += pytesseract.image_to_string(page)
             return self.security.deidentify_text(text[:4000])
         except Exception as e:
-            self.logger.log_error("PDF_ERROR", str(e))
+            self.error(f"PDF_ERROR: {str(e)}")
             return ""
 
     def validate_files(self, xray_path: Optional[str], pdf_path: Optional[str]) -> bool:
@@ -73,21 +73,21 @@ class IngestionAgent(BaseAgent):
             for path in [xray_path, pdf_path]:
                 if path and os.path.exists(path):
                     if not self.security.validate_file_type(path, allowed_types):
-                        self.logger.log_error("FILE_VALIDATION", f"Invalid file type: {path}")
+                        self.error(f"FILE_VALIDATION: Invalid file type: {path}")
                         return False
                     if os.path.getsize(path) > max_size:
-                        self.logger.log_error("FILE_VALIDATION", f"File too large: {path}")
+                        self.error(f"FILE_VALIDATION: File too large: {path}")
                         return False
             return True
         except Exception as e:
-            self.logger.log_error("FILE_VALIDATION", str(e))
+            self.error(f"FILE_VALIDATION: {str(e)}")
             return False
 
     def run(self, payload: Dict[str, Any]) -> AgentResult:
         events = []
         try:
             # Debug logging
-            self.logger.log_info("INGESTION_START", f"Received payload: {str(payload)}")
+            self.info(f"INGESTION_START: Received payload: {str(payload)}")
             
             # Validate and sanitize input
             sanitized_payload = self.security.sanitize_input(payload)
@@ -95,21 +95,17 @@ class IngestionAgent(BaseAgent):
             pdf_path = sanitized_payload.get("pdf_path")
             
             # Log paths for debugging
-            self.logger.log_info("INGESTION_PATHS", 
-                f"X-ray path: {xray_path}, PDF path: {pdf_path}")
+            self.info(f"INGESTION_PATHS: X-ray path: {xray_path}, PDF path: {pdf_path}")
             
             # Check if xray file exists
             if xray_path and os.path.exists(xray_path):
-                self.logger.log_info("INGESTION_FILE", 
-                    f"X-ray file exists: {os.path.getsize(xray_path)} bytes")
+                self.info(f"INGESTION_FILE: X-ray file exists: {os.path.getsize(xray_path)} bytes")
             else:
-                self.logger.log_error("INGESTION_FILE", 
-                    f"X-ray file missing or invalid: {xray_path}")
+                self.error(f"INGESTION_FILE: X-ray file missing or invalid: {xray_path}")
             
             # Early validation of X-ray
             if not self._validate_xray(xray_path):
-                self.logger.log_error("INGESTION_VALIDATION", 
-                    f"X-ray validation failed for {xray_path}")
+                self.error(f"INGESTION_VALIDATION: X-ray validation failed for {xray_path}")
                 events.append(self.event("xray_validation_failed", 
                     {"error": "Invalid or missing X-ray file"}))
                 return AgentResult({"error": "Invalid X-ray file"}, events)
@@ -142,7 +138,7 @@ class IngestionAgent(BaseAgent):
             return AgentResult(output, events)
             
         except Exception as e:
-            self.logger.log_error("INGESTION_ERROR", str(e))
+            self.error(f"INGESTION_ERROR: {str(e)}")
             events.append(self.event("error", {"message": str(e)}))
             return AgentResult({"error": "Failed to process input files"}, events)
 

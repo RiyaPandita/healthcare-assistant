@@ -1,11 +1,7 @@
 drug_a,drug_b,level,note
 Paracetamol,Ibuprofen,mild,May be used together with proper spacing
-Cetirizine,Paracetamol,mild,Generally safe to combine
-Cetirizine,Cough Syrup,moderate,May increase drowsiness
-Paracetamol,Antacid,mild,Space doses by 2 hours
-Cetirizine,Cold Relief Tablet,severe,Avoid combination - risk of excessive drowsiness
-Cough Syrup,Cold Relief Tablet,severe,Contains overlapping ingredients
-Throat Lozenges,Cough Syrup,mild,Can be used together for sore throat
-Vitamin C,Electrolyte Solution,mild,Safe to combine
-Antacid,Cold Relief Tablet,moderate,Space doses by 2 hours
-Paracetamol,Cold Relief Tablet,moderate,Check combined ingredients
+Paracetamol,Aspirin,moderate,Concurrent use may increase risk of GI irritation
+Ibuprofen,Aspirin,moderate,May reduce cardioprotective effect of aspirin
+Diphenhydramine,Alcohol,severe,Additive CNS depression and sedation
+Dextromethorphan,MAOIs,severe,Risk of serotonin syndrome; avoid combination
+Phenylephrine,Antihypertensives,moderate,May reduce effectiveness of antihypertensives

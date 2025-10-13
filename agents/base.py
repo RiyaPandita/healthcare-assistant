@@ -31,3 +31,15 @@ class BaseAgent(ABC):
             "agent": self.name,
             "data": data
         }
+    
+    def error(self, message: str):
+        """Log an error message"""
+        self.logger.error(f"{self.name} - {message}")
+        
+    def info(self, message: str):
+        """Log an info message"""
+        self.logger.info(f"{self.name} - {message}")
+        
+    def warning(self, message: str):
+        """Log a warning message"""
+        self.logger.warning(f"{self.name} - {message}")

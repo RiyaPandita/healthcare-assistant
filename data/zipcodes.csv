@@ -1,11 +1,75 @@
-pincode,lat,lon,city,state,zone,delivery_zone
-400053,19.1157,72.8466,Mumbai,Maharashtra,Western,A
-400051,19.0596,72.8295,Mumbai,Maharashtra,Western,A
-400076,19.1136,72.9023,Mumbai,Maharashtra,Eastern,B
-400069,19.1280,72.8252,Mumbai,Maharashtra,Western,A
-400095,19.1964,72.8491,Mumbai,Maharashtra,Western,C
-400063,19.1647,72.8691,Mumbai,Maharashtra,Central,B
-400049,19.0434,72.8206,Mumbai,Maharashtra,Western,A
-400101,19.0784,72.9052,Mumbai,Maharashtra,Eastern,C
-400059,19.1790,72.8476,Mumbai,Maharashtra,Western,B
-400072,19.1337,72.9147,Mumbai,Maharashtra,Eastern,B
+pincode,latitude,longitude,city,state,zone,delivery_zone
+400001,18.999392,72.8565051,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400002,18.9540177,72.8327539,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400003,18.9555322,72.8329511,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400004,18.9613402,72.8252356,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400005,18.9327876,72.8369772,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400006,18.9529665,72.7994439,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400007,19.004183,72.9153464,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400008,18.9327713,72.8370823,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400009,18.9589457,72.8377626,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400010,18.9327713,72.8370823,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400011,18.9942307,72.8444232,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400012,19.0731299,72.9144852,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400013,19.0046809,72.8283497,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400014,19.0184951,72.8502421,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400017,19.0455926,72.8574208,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400018,19.0016961,72.8199783,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400021,18.9256139,72.823668,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400025,19.0154224,72.8288496,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400028,19.0190756,72.8366254,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400030,19.0076325,72.8188529,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400032,18.9275338,72.8291136,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400037,19.0260087,72.8684164,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400038,18.934404,72.839211,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400039,18.9327876,72.8369772,Mumbai,Maharashtra,Postal Zone 4,South Mumbai
+400050,19.0574839,72.8297277,Mumbai,Maharashtra,Postal Zone 4,Western Suburbs
+400051,19.0507572,72.8621697,Mumbai,Maharashtra,Postal Zone 4,Western Suburbs
+400052,19.0741049,72.8316445,Mumbai,Maharashtra,Postal Zone 4,Western Suburbs
+400053,19.138015,72.8297229,Mumbai,Maharashtra,Postal Zone 4,Western Suburbs
+400054,19.0826528,72.8371275,Mumbai,Maharashtra,Postal Zone 4,Western Suburbs
+400055,19.0807509,72.8486087,Mumbai,Maharashtra,Postal Zone 4,Western Suburbs
+400056,19.0549299,73.0039117,Mumbai,Maharashtra,Postal Zone 4,Western Suburbs
+400057,19.1029416,72.8498022,Mumbai,Maharashtra,Postal Zone 4,Western Suburbs
+400058,19.1216311,72.8395643,Mumbai,Maharashtra,Postal Zone 4,Western Suburbs
+400059,19.1155664,72.9236061,Mumbai,Maharashtra,Postal Zone 4,Western Suburbs
+400060,19.1361593,72.856803,Mumbai,Maharashtra,Postal Zone 4,Western Suburbs
+400061,19.1344865,72.8143547,Mumbai,Maharashtra,Postal Zone 4,Western Suburbs
+400062,19.1644577,72.8462672,Mumbai,Maharashtra,Postal Zone 4,Western Suburbs
+400063,19.168105,72.8605038,Mumbai,Maharashtra,Postal Zone 4,Western Suburbs
+400064,19.1888529,72.8402336,Mumbai,Maharashtra,Postal Zone 4,Western Suburbs
+400066,19.2285811,72.8624234,Mumbai,Maharashtra,Postal Zone 4,Western Suburbs
+400067,19.207309,72.8386849,Mumbai,Maharashtra,Postal Zone 4,Western Suburbs
+400068,19.2492395,72.861314,Mumbai,Maharashtra,Postal Zone 4,Western Suburbs
+400069,19.1215086,72.8532719,Mumbai,Maharashtra,Postal Zone 4,Western Suburbs
+400070,19.079091,72.883052,Mumbai,Maharashtra,Postal Zone 4,Eastern Suburbs
+400071,19.1043016,72.9059229,Mumbai,Maharashtra,Postal Zone 4,Eastern Suburbs
+400074,19.034659,72.8930381,Mumbai,Maharashtra,Postal Zone 4,Eastern Suburbs
+400076,19.122641,72.9126071,Mumbai,Maharashtra,Postal Zone 4,Eastern Suburbs
+400080,19.1755402,72.9514312,Mumbai,Maharashtra,Postal Zone 4,Eastern Suburbs
+400082,19.172908,72.9349121,Mumbai,Maharashtra,Postal Zone 4,Eastern Suburbs
+400086,19.0878917,72.904025,Mumbai,Maharashtra,Postal Zone 4,Eastern Suburbs
+400088,19.045793,72.9196126,Mumbai,Maharashtra,Postal Zone 4,Eastern Suburbs
+400089,19.0599043,72.8996003,Mumbai,Maharashtra,Postal Zone 4,Eastern Suburbs
+400090,19.1636085,72.8377227,Mumbai,Maharashtra,Postal Zone 4,Eastern Suburbs
+400092,19.2427428,72.8475072,Mumbai,Maharashtra,Postal Zone 4,Eastern Suburbs
+400093,19.1263659,72.8659796,Mumbai,Maharashtra,Postal Zone 4,Eastern Suburbs
+400094,19.0376194,72.9279643,Mumbai,Maharashtra,Postal Zone 4,Eastern Suburbs
+400095,19.1948904,72.8157221,Mumbai,Maharashtra,Postal Zone 4,Eastern Suburbs
+400097,19.1835488,72.8590571,Mumbai,Maharashtra,Postal Zone 4,Eastern Suburbs
+400098,19.0782459,72.8616149,Mumbai,Maharashtra,Postal Zone 4,Eastern Suburbs
+400099,19.1045944,72.8633662,Mumbai,Maharashtra,Postal Zone 4,Eastern Suburbs
+400101,19.2050674,72.8701142,Mumbai,Maharashtra,Postal Zone 4,Extended Western Suburbs
+400102,19.1422566,72.8394723,Mumbai,Maharashtra,Postal Zone 4,Extended Western Suburbs
+400103,19.238461,72.8498236,Mumbai,Maharashtra,Postal Zone 4,Extended Western Suburbs
+400104,19.1598192,72.8416605,Mumbai,Maharashtra,Postal Zone 4,Extended Western Suburbs
+400601,18.9327713,72.8370823,Mumbai,Maharashtra,Postal Zone 4,Navi Mumbai
+400602,18.9327713,72.8370823,Mumbai,Maharashtra,Postal Zone 4,Navi Mumbai
+400603,18.9327713,72.8370823,Mumbai,Maharashtra,Postal Zone 4,Navi Mumbai
+400604,18.9327713,72.8370823,Mumbai,Maharashtra,Postal Zone 4,Navi Mumbai
+400605,18.9327713,72.8370823,Mumbai,Maharashtra,Postal Zone 4,Navi Mumbai
+400606,18.9327713,72.8370823,Mumbai,Maharashtra,Postal Zone 4,Navi Mumbai
+400607,18.9327713,72.8370823,Mumbai,Maharashtra,Postal Zone 4,Navi Mumbai
+400608,18.9327713,72.8370823,Mumbai,Maharashtra,Postal Zone 4,Navi Mumbai
+400610,18.9327713,72.8370823,Mumbai,Maharashtra,Postal Zone 4,Navi Mumbai
+400614,19.0277561,73.0356307,Mumbai,Maharashtra,Postal Zone 4,Navi Mumbai

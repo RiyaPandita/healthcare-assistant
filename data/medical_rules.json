@@ -1,0 +1,103 @@
+{
+  "symptoms": {
+    "fever": {
+      "otc_options": ["Paracetamol", "Ibuprofen", "Aspirin"],
+      "contraindications": ["paracetamol allergy", "NSAID allergy", "aspirin in children"],
+      "preferred": "Paracetamol"
+    },
+    "headache": {
+      "otc_options": ["Paracetamol", "Ibuprofen"],
+      "contraindications": ["paracetamol allergy", "NSAID allergy"]
+    },
+    "body_ache": {
+      "otc_options": ["Paracetamol", "Ibuprofen"],
+      "contraindications": ["paracetamol allergy", "NSAID allergy"]
+    },
+    "sore_throat": {
+      "otc_options": ["Paracetamol", "Ibuprofen", "Lozenges"],
+      "contraindications": ["paracetamol allergy", "NSAID allergy"]
+    },
+    "runny_nose": {
+      "otc_options": ["Diphenhydramine", "Chlorpheniramine", "Ipratropium"],
+      "contraindications": ["antihistamine allergy", "ipratropium allergy"]
+    },
+    "nasal_congestion": {
+      "otc_options": ["Oxymetazoline", "Phenylephrine", "Pseudoephedrine"],
+      "contraindications": ["hypertension", "heart disease", "decongestant allergy"]
+    },
+    "cough": {
+      "otc_options": ["Dextromethorphan"],
+      "contraindications": ["dextromethorphan allergy", "MAOI use"]
+    },
+    "fatigue": {
+      "otc_options": ["Supportive care (hydration, rest)"],
+      "contraindications": []
+    },
+    "diarrhea": {
+      "otc_options": ["Oral rehydration solution"],
+      "contraindications": []
+    },
+    "loss_of_taste": {
+      "otc_options": ["Supportive care only"],
+      "contraindications": []
+    },
+    "loss_of_smell": {
+      "otc_options": ["Supportive care only"],
+      "contraindications": []
+    }
+  },
+  "allergy_keywords": {
+    "paracetamol": ["paracetamol", "acetaminophen", "tylenol"],
+    "nsaids": ["ibuprofen", "aspirin", "naproxen", "nsaid"],
+    "antihistamines": ["diphenhydramine", "chlorpheniramine", "benadryl"],
+    "decongestants": ["oxymetazoline", "phenylephrine", "pseudoephedrine"],
+    "anticholinergics": ["ipratropium", "atropine"],
+    "antitussives": ["dextromethorphan", "dm", "cough suppressant"]
+  },
+  "covid_primary_symptoms": [
+    "fever",
+    "cough",
+    "fatigue",
+    "loss_of_taste",
+    "loss_of_smell",
+    "shortness_of_breath"
+  ],
+  "covid_secondary_symptoms": [
+    "body_ache",
+    "headache",
+    "sore_throat",
+    "nasal_congestion",
+    "runny_nose",
+    "diarrhea"
+  ],
+  "non_covid_symptoms": [
+    "rash",
+    "ear_pain",
+    "eye_pain",
+    "tooth_ache",
+    "stomach_pain"
+  ],
+  "symptom_validation": {
+    "min_primary_symptoms": 1,
+    "min_total_symptoms": 2,
+    "validation_message": "Based on your symptoms, this may not be COVID-19. Please consult a healthcare provider for proper diagnosis."
+  },
+  "age_groups": {
+    "child": {
+      "range": "0-11",
+      "restrictions": ["Aspirin", "Adult-strength medications"]
+    },
+    "teen": {
+      "range": "12-17",
+      "restrictions": ["Aspirin", "Adult-strength medications"]
+    },
+    "adult": {
+      "range": "18-64",
+      "restrictions": []
+    },
+    "elderly": {
+      "range": "65-150",
+      "restrictions": ["High-dose NSAIDs"]
+    }
+  }
+}

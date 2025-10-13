@@ -1,11 +1,11 @@
 paths:
   data:
-    meds: data/meds_updated.csv
-    interactions: data/interactions_updated.csv
-    doctors: data/doctors_updated.csv
-    pharmacies: data/pharmacies_updated.json
-    inventory: data/inventory_updated.csv
-    zipcodes: data/zipcodes_updated.csv
+    meds: ./data/meds.csv
+    interactions: ./data/interactions.csv
+    doctors: ./data/doctors.csv
+    pharmacies: ./data/pharmacies.json
+    inventory: ./data/inventory.csv
+    zipcodes: ./data/zipcodes.csv
 
 model:
   provider: gemini

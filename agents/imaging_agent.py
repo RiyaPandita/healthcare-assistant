@@ -2,7 +2,12 @@
 from typing import Dict, Any, Tuple
 from agents.base import BaseAgent, AgentResult
 from models.imaging_stub import ChestXrayAnalyzer
+from models.xray_processor import (
+    extract_pdf_text, parse_report, estimate_lung_involvement_percentages,
+    rale_bucket, map_to_simple_scale, generate_impression
+)
 import os
+from PIL import Image
 from utils.config import Config
 import logging
 
@@ -20,15 +25,14 @@ class ImagingAgent(BaseAgent):
             'severe': 0.8
         })
         
-    def validate_image(self, path: str) -> bool:
-        """Validate the image file against security settings"""
+    def validate_file(self, path: str, allowed_types: list) -> bool:
+        """Validate any file against security settings"""
         try:
             if not path or not os.path.exists(path):
-                logging.error(f"Image file not found: {path}")
+                logging.error(f"File not found: {path}")
                 return False
                 
             security_settings = self.config.settings.get('security', {})
-            allowed_types = security_settings.get('allowed_file_types', ['png', 'jpg', 'jpeg'])
             max_size = security_settings.get('max_file_size_mb', 10) * 1024 * 1024
             
             ext = os.path.splitext(path)[1].lower()[1:]
@@ -45,8 +49,12 @@ class ImagingAgent(BaseAgent):
             return True
             
         except Exception as e:
-            logging.error(f"Error validating image: {str(e)}")
+            logging.error(f"Error validating file: {str(e)}")
             return False
+            
+    def validate_image(self, path: str) -> bool:
+        """Validate the image file against security settings"""
+        return self.validate_file(path, ['png', 'jpg', 'jpeg'])
     
     def analyze_severity(self, probabilities: Dict[str, float]) -> Tuple[str, float]:
         """Determine severity level from condition probabilities"""
@@ -63,22 +71,120 @@ class ImagingAgent(BaseAgent):
     def run(self, payload: Dict[str, Any]) -> AgentResult:
         events = []
         try:
-            path = payload.get("xray_path")
+            xray_path = payload.get("xray_path")
+            xray_report_path = payload.get("xray_report_path")
+            prescription_path = payload.get("prescription_path")
             
-            # Validate image
-            if not self.validate_image(path):
-                events.append(self.event("validation_failed", {"path": path}))
+            # Validate X-ray image
+            if not self.validate_image(xray_path):
+                events.append(self.event("validation_failed", {"path": xray_path}))
                 return AgentResult(
                     {"error": "Invalid or missing X-ray image"},
                     events
                 )
-            
-            # Get predictions
-            try:
-                # Get predictions
-                probabilities = self.analyzer.predict(path)
                 
-                # Determine severity from highest probability
+            # Validate report and prescription if provided
+            if xray_report_path and not self.validate_file(xray_report_path, ['pdf']):
+                events.append(self.event("validation_warning", {"path": xray_report_path, "type": "report"}))
+                xray_report_path = None
+                
+            if prescription_path and not self.validate_file(prescription_path, ['pdf', 'jpg', 'jpeg', 'png']):
+                events.append(self.event("validation_warning", {"path": prescription_path, "type": "prescription"}))
+                prescription_path = None
+            
+            try:
+                # Load and process X-ray image
+                img = Image.open(xray_path).convert("RGB")
+                events.append(self.event("image_loaded", {"path": xray_path}))
+
+                # Process X-ray report if available
+                xray_report_text = ""
+                if xray_report_path and os.path.exists(xray_report_path):
+                    with open(xray_report_path, 'rb') as f:
+                        xray_report_text = extract_pdf_text(f.read())
+                    events.append(self.event("report_processed", {"path": xray_report_path}))
+                        
+                # Process prescription if available
+                prescription_text = ""
+                if prescription_path and os.path.exists(prescription_path):
+                    with open(prescription_path, 'rb') as f:
+                        prescription_text = extract_pdf_text(f.read())
+                    events.append(self.event("prescription_processed", {"path": prescription_path}))
+
+                # Parse radiological findings from X-ray report
+                rf = parse_report(xray_report_text) if xray_report_text else {
+                    "ground_glass_opacity": False,
+                    "consolidation": False,
+                    "reticular_thickening": False,
+                    "pleural_effusion": False,
+                    "pneumothorax": False,
+                    "laterality": None,
+                    "zones_involved": None,
+                    "distribution": None,
+                }
+
+                # Analyze image
+                left_pct, right_pct = estimate_lung_involvement_percentages(img)
+                left_score_img = rale_bucket(left_pct)
+                right_score_img = rale_bucket(right_pct)
+
+                # Apply laterality adjustments
+                left_score = left_score_img
+                right_score = right_score_img
+                if rf.get("laterality") == "left":
+                    right_score = max(0, right_score // 2)
+                elif rf.get("laterality") == "right":
+                    left_score = max(0, left_score // 2)
+
+                total = left_score + right_score
+                mapped, mapped_label = map_to_simple_scale(total)
+
+                # Generate impression
+                impression = generate_impression(rf, left_score, right_score, total, mapped, mapped_label)
+
+                # Create comprehensive output
+                output = {
+                    "radiographic_findings": rf,
+                    "severity_score": {
+                        "left_lung": int(left_score),
+                        "right_lung": int(right_score),
+                        "total": int(total),
+                        "mapped_scale": int(mapped),
+                        "mapped_label": mapped_label,
+                    },
+                    "image_estimates": {
+                        "left_pct": round(left_pct, 2),
+                        "right_pct": round(right_pct, 2),
+                        "left_score_image": int(left_score_img),
+                        "right_score_image": int(right_score_img),
+                    },
+                    "impression": impression,
+                }
+
+                # Add severity event
+                events.append(self.event("analysis_complete", {
+                    "severity": mapped_label,
+                    "score": total,
+                    "findings": rf
+                }))
+
+                # Determine if severity warrants auto-escalation
+                requires_escalation = mapped >= 4  # Moderate-Severe or worse
+                if requires_escalation:
+                    output["requires_escalation"] = True
+                    events.append(self.event("escalation_flagged", {
+                        "reason": f"Severity: {mapped_label}, Score: {total}/8"
+                    }))
+
+                return AgentResult(output, events)
+                
+            except Exception as e:
+                logging.error(f"Error analyzing image: {str(e)}")
+                events.append(self.event("analysis_error", {"error": str(e)}))
+                return AgentResult(
+                    {"error": "Failed to analyze X-ray image"},
+                    events
+                )
                 max_prob = max(probabilities.values())
                 if max_prob >= self.severity_thresholds.get('severe', 0.8):
                     severity_level = 'severe'
