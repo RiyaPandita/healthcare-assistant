@@ -181,22 +181,18 @@ class TherapyAgent(BaseAgent):
             recommendations = {}  # Use dict to track unique medications by SKU
             warnings = []
             processed_drugs = set()  # Track processed drugs to avoid duplicates
-            
+
+            # Collect safe options per symptom
+            symptom_safe_options: Dict[str, List[str]] = {}
             for symptom in symptoms:
+                symptom_safe_options[symptom] = []
                 if symptom in self.medical_rules["symptoms"]:
                     symptom_data = self.medical_rules["symptoms"][symptom]
-                    
                     # Filter medications based on contraindications and age restrictions
-                    safe_options = []
                     for med in symptom_data["otc_options"]:
-                        # Skip if we've already processed this drug
-                        if med.lower() in processed_drugs:
-                            continue
-                            
                         # Check if med is restricted by age
                         if med in age_restrictions:
                             continue
-                            
                         # Check if med's name or category matches any expanded allergies
                         med_lower = med.lower()
                         is_safe = True
@@ -204,47 +200,53 @@ class TherapyAgent(BaseAgent):
                             if allergy.lower() in med_lower or med_lower in allergy.lower():
                                 is_safe = False
                                 break
-                                
                         if is_safe:
-                            safe_options.append(med)
-                    
-                    if safe_options:
-                        # Get medication details from meds database
-                        for med in safe_options:
-                            # Skip if we've already processed this drug
-                            if med.lower() in processed_drugs:
-                                continue
-                                
-                            med_data = self.meds[self.meds["drug_name"].str.contains(med, case=False)]
-                            if not med_data.empty:
-                                row = med_data.iloc[0]
-                                sku = row["sku"]
-                                # Try to map to a pharmacy inventory SKU (OTC*) if available
-                                inventory_sku = None
-                                try:
-                                    inv_path = os.path.join(self.config.base_path, "data", "inventory.csv")
-                                    inv_df = pd.read_csv(inv_path)
-                                    # Normalize columns if needed
-                                    if 'drug_name' in inv_df.columns and 'sku' in inv_df.columns:
-                                        match = inv_df[inv_df['drug_name'].str.contains(med, case=False, na=False)]
-                                        if not match.empty:
-                                            inventory_sku = match.iloc[0]['sku']
-                                except Exception:
-                                    inventory_sku = None
+                            symptom_safe_options[symptom].append(med)
 
-                                returned_sku = inventory_sku if inventory_sku else sku
-                                # Only add if we haven't seen this SKU before
-                                if returned_sku not in recommendations:
-                                    recommendations[returned_sku] = {
-                                        "drug_name": med,
-                                        "sku": returned_sku,
-                                        "dose": row.get("recommended_dose", "as per label"),
-                                        "freq": row.get("frequency", "as per label"),
-                                        "warnings": row.get("warnings", "").split(";") if row.get("warnings") else []
-                                    }
-                                    processed_drugs.add(med.lower())
-                    else:
-                        warnings.append(f"No safe options found for {symptom} due to contraindications")
+            # If multiple symptoms detected, prefer meds that appear in ALL symptom lists (intersection)
+            meds_to_add = set()
+            non_empty_lists = [opts for opts in symptom_safe_options.values() if opts]
+            if len(non_empty_lists) > 1:
+                # Compute intersection across symptom-safe lists
+                intersect = set(non_empty_lists[0]).intersection(*non_empty_lists[1:])
+                if intersect:
+                    meds_to_add = intersect
+                else:
+                    # Fall back to union with a warning
+                    meds_to_add = set().union(*non_empty_lists)
+                    warnings.append("Recommendations cover mixed symptoms; consider consulting if symptoms persist or are severe.")
+            else:
+                # Single symptom or none - use the single list or empty
+                meds_to_add = set(non_empty_lists[0]) if non_empty_lists else set()
+
+            # Add meds_to_add to recommendations
+            for med in meds_to_add:
+                if med.lower() in processed_drugs:
+                    continue
+                med_data = self.meds[self.meds["drug_name"].str.contains(med, case=False)]
+                if not med_data.empty:
+                    row = med_data.iloc[0]
+                    sku = row["sku"]
+                    inventory_sku = None
+                    try:
+                        inv_path = os.path.join(self.config.base_path, "data", "inventory.csv")
+                        inv_df = pd.read_csv(inv_path)
+                        if 'drug_name' in inv_df.columns and 'sku' in inv_df.columns:
+                            match = inv_df[inv_df['drug_name'].str.contains(med, case=False, na=False)]
+                            if not match.empty:
+                                inventory_sku = match.iloc[0]['sku']
+                    except Exception:
+                        inventory_sku = None
+                    returned_sku = inventory_sku if inventory_sku else sku
+                    if returned_sku not in recommendations:
+                        recommendations[returned_sku] = {
+                            "drug_name": med,
+                            "sku": returned_sku,
+                            "dose": row.get("recommended_dose", "as per label"),
+                            "freq": row.get("frequency", "as per label"),
+                            "warnings": row.get("warnings", "").split(";") if row.get("warnings") else []
+                        }
+                        processed_drugs.add(med.lower())
                         
             # Convert recommendations dict to list and ensure it's never None
             return list(recommendations.values()) or [], warnings
@@ -413,14 +415,13 @@ Return a concise advice paragraph with appropriate cautions based on severity.
                 if any(keyword in notes.lower() for keyword in keywords):
                     detected_symptoms.append(symptom)
             
-            # If no symptoms detected, use condition mapping
-            if not detected_symptoms:
-                condition_symptom_map = {
-                    "pneumonia": ["fever", "cough"],
-                    "covid_suspect": ["fever", "cough", "fatigue"],
-                    "normal": ["cough"] if "cough" in notes.lower() else ["fever"]
-                }
-                detected_symptoms = condition_symptom_map.get(top_condition, ["fever"])
+            # If no symptoms detected from notes, we do NOT fallback to
+            # condition-derived symptoms. OTC recommendations should only be
+            # considered when explicit symptom keywords, allergies, or medical
+            # measurements (e.g., temperature, SpO2) are present.
+            # Keep detected_symptoms empty to avoid suggesting OTCs when there
+            # is no explicit evidence.
+            # (No action required here; detected_symptoms remains as computed.)
             
             # Get medical data from notes and PDF
             medical_data = {
