@@ -593,8 +593,4 @@ If you'd like, I can:
 
 ---
 
-If you'd like, I can:
-- Add UML/Graphviz diagrams as separate images checked into `docs/` for richer visuals.
-- Break this README into `docs/` pages (e.g., `docs/agents.md`, `docs/data.md`) and wire a small static site generator (MkDocs) for nicer browsing.
-- Create a CONTRIBUTING.md with git workflow rules and a small pre-commit hook to block committing secrets.
-- Tell me how you'd like the README expanded (e.g., more sequence diagrams per agent, concrete code snippets for each class, or adding a living architecture diagram) and I will update it.
+
