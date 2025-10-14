@@ -10,6 +10,11 @@ from utils.config import Config
 class AgentResult:
     output: Dict[str, Any]
     events: List[Dict[str, Any]]  # Enhanced event logging
+    
+    @property
+    def data(self) -> Dict[str, Any]:
+        """Backward-compatible alias used by older tests: `.data` -> `.output`"""
+        return self.output
 
 class BaseAgent(ABC):
     name: str = "base_agent"

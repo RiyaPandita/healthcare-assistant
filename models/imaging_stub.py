@@ -86,11 +86,23 @@ class ChestXrayAnalyzer:
             # Return default probabilities in case of error
             return {'normal': 0.8, 'pneumonia': 0.1, 'covid_suspect': 0.1}
 
-def predict_xray_stub(img_path: str) -> Dict[str, float]:
-    """Interface function for compatibility"""
+def predict_xray_stub(img_path: str):
+    """Interface function for compatibility.
+
+    Returns a tuple: (probabilities dict, severity_label)
+    """
     try:
         analyzer = ChestXrayAnalyzer()
-        return analyzer.predict(img_path)
+        probs = analyzer.predict(img_path)
+        # Derive a simple severity label from probabilities (reuse analyzer logic heuristically)
+        max_prob = max(probs.values()) if probs else 0
+        if max_prob >= 0.8:
+            sev = "severe"
+        elif max_prob >= 0.6:
+            sev = "moderate"
+        else:
+            sev = "mild"
+        return probs, sev
     except Exception as e:
         print(f"Error in stub: {str(e)}")
-        return {'normal': 0.8, 'pneumonia': 0.1, 'covid_suspect': 0.1}
+        return {'normal': 0.8, 'pneumonia': 0.1, 'covid_suspect': 0.1}, 'mild'

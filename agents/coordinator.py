@@ -62,10 +62,38 @@ class Coordinator:
         need_escalation = (top_prob < CONFIDENCE_THRESHOLD) or bool(red_flags)
         escalation = {}
         if need_escalation:
-            doc_in = {**img.output, "red_flags": red_flags}
+            # include ingestion output (patient info) and imaging output when calling doctor
+            # this ensures patient.age, allergies, symptoms, and pdf_text from ingestion are passed
+            doc_in = {**ing.output, **img.output, "red_flags": red_flags}
             esc = self.doctor.run(doc_in)
             all_events += esc.events
             escalation = esc.output
+
+        else:
+            # Even when no escalation is required, provide a best-match doctor for UI display.
+            # Use the doctor's lightweight selector to avoid calling LLMs unnecessarily.
+            try:
+                patient = ing.output.get('patient', {})
+                patient_age = None
+                if isinstance(patient, dict):
+                    raw_age = patient.get('age')
+                    try:
+                        if raw_age is not None and raw_age != "":
+                            patient_age = int(float(raw_age))
+                    except Exception:
+                        patient_age = None
+
+                selected = self.doctor._select_doctor(
+                    specialty=None,
+                    severity=img.output.get('severity_hint', 'mild'),
+                    patient_age=patient_age,
+                    allergies=patient.get('allergies') if isinstance(patient, dict) else None,
+                    symptoms=ther.output.get('detected_symptoms') or ther.output.get('symptoms'),
+                    pdf_text=ing.output.get('pdf_text')
+                )
+                escalation = {"doctor": selected, "escalate": False}
+            except Exception:
+                escalation = {}
 
         final = {
             "ingestion": ing.output,

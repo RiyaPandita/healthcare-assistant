@@ -1,6 +1,8 @@
 doctor_id,name,specialty,experience_years,languages,tele_slot_iso8601,emergency_available,rating,consultations
-DOC001,Dr. Sarah Williams,General Medicine,15,"English,Hindi,Marathi","2025-10-10T10:00:00Z,2025-10-10T14:00:00Z,2025-10-10T16:00:00Z",true,4.8,5000
 DOC002,Dr. Rajesh Kumar,Pulmonology,12,"English,Hindi","2025-10-10T11:00:00Z,2025-10-10T15:00:00Z",true,4.9,3200
 DOC003,Dr. Lisa Chen,Emergency Medicine,8,"English,Mandarin","2025-10-10T09:00:00Z,2025-10-10T13:00:00Z,2025-10-10T17:00:00Z",true,4.7,2800
 DOC004,Dr. Ahmed Khan,Internal Medicine,10,"English,Hindi,Urdu","2025-10-10T12:00:00Z,2025-10-10T16:00:00Z",false,4.6,4100
 DOC005,Dr. Maria Garcia,Family Medicine,14,"English,Spanish","2025-10-10T10:30:00Z,2025-10-10T14:30:00Z",false,4.8,4500
+DOC006,Dr. Priya Mehta,Pediatrics,7,"English,Hindi","2025-10-10T09:30:00Z,2025-10-10T13:30:00Z",false,4.7,1500
+DOC007,Dr. Robert King,Geriatrics,20,"English","2025-10-10T11:00:00Z,2025-10-10T15:00:00Z",false,4.9,6000
+DOC001,Dr. Sarah Williams,General Medicine,15,"English,Hindi,Marathi","2025-10-10T10:00:00Z,2025-10-10T14:00:00Z,2025-10-10T16:00:00Z",true,4.8,5000

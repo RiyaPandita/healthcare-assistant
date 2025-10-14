@@ -28,6 +28,12 @@ class PharmacyAgent(BaseAgent):
             with open(pharmacies_path, "r") as f:
                 self.pharmacies = json.load(f)
             self.inventory = pd.read_csv(inventory_path)
+            # Some test fixtures and data use 'stock' instead of 'qty' - normalize
+            if 'stock' in self.inventory.columns and 'qty' not in self.inventory.columns:
+                self.inventory = self.inventory.rename(columns={'stock': 'qty'})
+            # Ensure pharmacy_id is string for consistent comparisons
+            if 'pharmacy_id' in self.inventory.columns:
+                self.inventory['pharmacy_id'] = self.inventory['pharmacy_id'].astype(str)
             # Try to load meds catalog for SKU->drug_name mapping (optional)
             try:
                 self.meds = pd.read_csv(self.pharmacy_settings.get('meds_path', 'data/meds.csv'))
@@ -64,7 +70,7 @@ class PharmacyAgent(BaseAgent):
             # When True, pharmacies that have at least one requested item will be returned with
             # information about which items are available vs missing. When False, only pharmacies
             # that can fulfill all requested items are returned.
-            self.allow_partial_fulfillment = self.pharmacy_settings.get('allow_partial_fulfillment', True)
+            self.allow_partial_fulfillment = self.pharmacy_settings.get('allow_partial_fulfillment', False)
             
             # Pre-process delivery zones - clean zone names
             self.zips['delivery_zone'] = self.zips['delivery_zone'].str.strip()

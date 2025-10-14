@@ -5,6 +5,8 @@ ph001,OTC003,Cetirizine,tablet,10mg,B2025003,2027-01,45.20,200,1,30
 ph001,OTC009,Ibuprofen,tablet,200mg,B2025011,2026-09,30.00,300,1,40
 ph001,OTC010,Oxymetazoline,nasal spray,0.05%,B2025012,2026-05,95.00,120,1,5
 
+ph001,OTC013,Dextromethorphan,syrup,10mg/5ml,B2025015,2026-10,75.00,50,1,10
+
 ph002,OTC001,Paracetamol,tablet,500mg,B2025004,2026-12,11.00,300,1,50
 ph002,OTC004,Throat Lozenges,lozenge,1unit,B2025005,2026-03,25.00,150,1,20
 ph002,OTC005,Antacid Suspension,liquid,10ml,B2025006,2026-09,65.30,80,1,10

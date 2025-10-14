@@ -36,6 +36,11 @@ uploads/
 logs/
 .env
 
+# Streamlit secrets
+.streamlit/secrets.toml
+streamlit/secrets.toml
+streamlit/secret.toml
+
 # Misc
 .DS_Store
 Thumbs.db

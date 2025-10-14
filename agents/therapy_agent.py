@@ -149,10 +149,12 @@ class TherapyAgent(BaseAgent):
     def _filter_otc(self, symptoms: List[str], age: int, allergies: List[str], medical_data: Dict) -> List[Dict]:
         """Enhanced OTC medication filter with comprehensive rules"""
         try:
-            # Validate COVID-19 symptoms
+            # Validate COVID-19 symptoms when relevant. Don't abort OTC flow entirely
+            # if COVID patterns are not met; surface validation messages as warnings instead.
             is_covid, validation_message = self._check_covid_symptoms(symptoms)
-            if not is_covid:
-                return [], [validation_message]
+            warnings = []
+            if not is_covid and validation_message:
+                warnings.append(validation_message)
             
             # Check for red flags
             red_flags = self._check_red_flags(symptoms, medical_data)
@@ -217,11 +219,25 @@ class TherapyAgent(BaseAgent):
                             if not med_data.empty:
                                 row = med_data.iloc[0]
                                 sku = row["sku"]
+                                # Try to map to a pharmacy inventory SKU (OTC*) if available
+                                inventory_sku = None
+                                try:
+                                    inv_path = os.path.join(self.config.base_path, "data", "inventory.csv")
+                                    inv_df = pd.read_csv(inv_path)
+                                    # Normalize columns if needed
+                                    if 'drug_name' in inv_df.columns and 'sku' in inv_df.columns:
+                                        match = inv_df[inv_df['drug_name'].str.contains(med, case=False, na=False)]
+                                        if not match.empty:
+                                            inventory_sku = match.iloc[0]['sku']
+                                except Exception:
+                                    inventory_sku = None
+
+                                returned_sku = inventory_sku if inventory_sku else sku
                                 # Only add if we haven't seen this SKU before
-                                if sku not in recommendations:
-                                    recommendations[sku] = {
+                                if returned_sku not in recommendations:
+                                    recommendations[returned_sku] = {
                                         "drug_name": med,
-                                        "sku": sku,
+                                        "sku": returned_sku,
                                         "dose": row.get("recommended_dose", "as per label"),
                                         "freq": row.get("frequency", "as per label"),
                                         "warnings": row.get("warnings", "").split(";") if row.get("warnings") else []
@@ -330,18 +346,56 @@ Return a concise advice paragraph with appropriate cautions based on severity.
                 "confidence": top_probability
             }))
 
-            # Check for red flags
+            # Check for red flags (phrases + imaging + confidence + measurements)
             red_flags = []
             red_flag_rules = self.medical_settings.get('red_flags', [
                 ("chest pain", "Immediate medical attention advised"),
                 ("shortness of breath", "Immediate medical attention advised"),
                 ("SpO2 < 92%", "Immediate medical attention advised")
             ])
-            
+
+            # Phrase-based rules from notes/pdf
             for phrase, msg in red_flag_rules:
                 if phrase.lower() in notes.lower():
                     red_flags.append(msg)
-            events.append(self.event("red_flags", {"flags": red_flags}))
+
+            # Pull through imaging outputs if present (xray/impression)
+            imaging_out = payload.get("imaging") or payload.get("imaging_output") or {}
+            try:
+                impression = (imaging_out.get("impression") or "").lower() if isinstance(imaging_out, dict) else ""
+                rf = imaging_out.get("radiographic_findings") if isinstance(imaging_out, dict) else None
+
+                # Radiographic findings indicating escalation
+                if rf and isinstance(rf, dict):
+                    if rf.get("consolidation"):
+                        red_flags.append("Imaging: consolidation noted — consider urgent review")
+                    if rf.get("ground_glass_opacity"):
+                        red_flags.append("Imaging: ground-glass opacities noted — consider urgent review")
+                    if rf.get("pleural_effusion"):
+                        red_flags.append("Imaging: pleural effusion noted — consider urgent review")
+                    if rf.get("pneumothorax"):
+                        red_flags.append("Imaging: pneumothorax noted — immediate attention advised")
+
+                # Impression text keywords
+                if impression:
+                    if any(k in impression for k in ("pneumonia", "consolidation", "ground glass", "air bronchogram")):
+                        red_flags.append("Imaging impression suggests pneumonia/consolidation — consider escalation")
+                    if any(k in impression for k in ("pleural effusion", "pneumothorax", "tension pneumothorax")):
+                        red_flags.append("Imaging impression suggests pleural effusion/pneumothorax — immediate attention advised")
+
+                # Explicit imaging escalation flag
+                if isinstance(imaging_out, dict) and imaging_out.get("requires_escalation"):
+                    red_flags.append("Imaging indicates escalation is recommended")
+            except Exception:
+                # Non-fatal: continue with other checks
+                pass
+
+            # Confidence-based rule: if initial analysis confidence > 60% treat as red-flag for review
+            try:
+                if top_probability and float(top_probability) > 0.6:
+                    red_flags.append(f"High analysis confidence ({float(top_probability)*100:.0f}%) for {top_condition} — consider escalation")
+            except Exception:
+                pass
 
             # Extract symptoms from notes
             symptom_keywords = {
@@ -383,13 +437,18 @@ Return a concise advice paragraph with appropriate cautions based on severity.
             if temp_match:
                 medical_data["measurements"]["temperature"] = temp_match.group(1)
             
-            # Get OTC recommendations with enhanced logic
-            otc_options, warnings = self._filter_otc(detected_symptoms, age, allergies, medical_data)
-            
-            # Ensure outputs are always lists, never None
-            otc_options = otc_options if otc_options is not None else []
-            warnings = warnings if warnings is not None else []
-            red_flags = red_flags if 'red_flags' in locals() else []  # Initialize if not already set
+            # Emit red_flags event now that we have collected phrase/imaging/confidence flags
+            events.append(self.event("red_flags", {"flags": red_flags}))
+
+            # If red flags exist, skip OTC recommendations and surface warnings
+            if red_flags:
+                otc_options = []
+                warnings = ["Escalation required based on red-flag findings; no OTC recommendations provided."]
+            else:
+                # Get OTC recommendations with enhanced logic
+                otc_options, warnings = self._filter_otc(detected_symptoms, age, allergies, medical_data)
+                otc_options = otc_options if otc_options is not None else []
+                warnings = warnings if warnings is not None else []
 
             # Process drug interactions once and store them
             drug_names = [o["drug_name"] for o in otc_options]

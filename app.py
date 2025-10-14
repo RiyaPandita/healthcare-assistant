@@ -471,11 +471,55 @@ if st.session_state.get("assessment_done", False):
         doctor_info = result["escalation"].get("doctor", {})
         if doctor_info:
             st.info(f"""
-            **Available Doctor:**
-            Dr. {doctor_info.get('name', 'N/A')}
+            **Best Suited Available Doctor:**
+            {doctor_info.get('name', 'N/A')}
             Specialty: {doctor_info.get('specialty', 'General Medicine')}
             Next Available Slot: {doctor_info.get('tele_slot_iso8601', 'Contact for scheduling')}
             """)
+            # Doctor booking UI: allow user to book this slot (demo-only, no real booking service)
+            booking_key = f"doctor_booked_{doctor_info.get('name','') }"
+            if not st.session_state.get('doctor_booked', False) and not st.session_state.get(booking_key, False):
+                with st.expander("📅 Book Doctor Slot", expanded=False):
+                    with st.form("doctor_booking_form"):
+                        st.write("Please confirm booking details for the selected doctor:")
+                        d_col1, d_col2 = st.columns(2)
+                        with d_col1:
+                            booker_name = st.text_input("Your full name", key="booker_name")
+                        with d_col2:
+                            booker_phone = st.text_input("Phone number", key="booker_phone")
+                        preferred_time = st.text_input("Preferred time (optional)", key="booker_pref_time")
+                        agree = st.checkbox("I confirm this booking is for demonstration purposes only", key="booker_agree")
+                        book_submit = st.form_submit_button("📌 Book Slot")
+
+                        if book_submit:
+                            if not (booker_name and booker_phone and agree):
+                                st.error("Please fill name, phone and confirm the demo booking checkbox.")
+                            else:
+                                # Save booking to session state and show confirmation
+                                booking_id = f"DOC-{datetime.now().strftime('%y%m%d')}-{abs(hash(str(doctor_info)))%1000:03d}"
+                                st.session_state['doctor_booked'] = True
+                                st.session_state[booking_key] = True
+                                st.session_state['doctor_booking'] = {
+                                    'booking_id': booking_id,
+                                    'doctor_name': doctor_info.get('name'),
+                                    'specialty': doctor_info.get('specialty'),
+                                    'slot': doctor_info.get('tele_slot_iso8601'),
+                                    'booker_name': booker_name,
+                                    'booker_phone': booker_phone,
+                                    'preferred_time': preferred_time
+                                }
+                                st.success(f"✅ Slot booked: {booking_id} — {doctor_info.get('name')}")
+                                # Use st.rerun() which is available in current Streamlit API
+                                try:
+                                    st.rerun()
+                                except Exception:
+                                    # If rerun fails for any reason, fallback to a no-op — session state already updated
+                                    pass
+            # If already booked, show confirmation
+            if st.session_state.get('doctor_booked', False) or st.session_state.get(booking_key, False):
+                db = st.session_state.get('doctor_booking', {})
+                if db:
+                    st.success(f"✅ **Doctor Slot Confirmed**\n\n- **Booking ID:** {db.get('booking_id')}\n- **Doctor:** {db.get('doctor_name')} ({db.get('specialty')})\n- **Slot:** {db.get('slot')}\n- **Booked For:** {db.get('booker_name')} — {db.get('booker_phone')}")
 
     with st.expander("Technical Details", expanded=False):
         # (All technical details display logic remains unchanged)
