@@ -507,6 +507,92 @@ This project is a demo and is not intended for production or to handle PHI. Safe
 
 ---
 
+## Recent changes (what we implemented)
+
+This project recently added several safety and workflow improvements focused on red-flag detection, clearer OTC recommendations, and delivery handling. The following is a concise summary of what was implemented, why, and where to look in the codebase.
+
+1) Severity scoring and imaging red-flags
+- Location: `models/xray_processor.py`, `agents/imaging_agent.py`
+- What: left/right lung percent opacities are mapped into RALE-style buckets per lung (0-4). The agent computes a total score (0-8) and a percent severity = total/8. Imaging now raises red flags when percent >= 0.7 (70%).
+- Also: imaging now inspects the radiologist impression and radiographic finding booleans (consolidation, pleural effusion, pneumothorax) and raises red flags for critical keywords.
+
+2) OTC recommendation logic changes (therapy)
+- Location: `agents/therapy_agent.py`, `data/medical_rules.json`
+- What: OTC recommendations are now only produced when explicit evidence exists (symptoms, measurements, allergies). The agent:
+	- Avoids silent fallbacks to condition-derived symptoms.
+	- Collects safe medication lists per symptom and prefers medications that cover ALL detected symptoms (intersection-first). Falls back to union with a warning if necessary.
+	- Filters meds by allergy keywords (from `data/medical_rules.json`) and age-group restrictions.
+	- Checks drug-drug interactions from `data/interactions.csv` before finalizing options.
+
+3) Pharmacy delivery fee & ETA calculations
+- Location: `agents/pharmacy_agent.py`, `data/zipcodes.csv`, `data/pharmacies.json`
+- What: Delivery fee now uses zone multipliers and distance-based fees. ETA uses zone-specific processing times and travel speeds. When combined red flags are present, the pharmacy agent selects express delivery (extra express fee) automatically.
+
+4) Escalation & coordinator changes
+- Location: `agents/coordinator.py`
+- What: The Coordinator now aggregates red flags from both imaging and therapy into `combined_red_flags`, passes these to downstream agents (pharmacy and doctor), and includes them in the final result. Escalation logic now triggers when imaging red flags are present as well as therapy red flags or low imaging confidence.
+
+5) UI changes
+- Location: `app.py`
+- What: The Streamlit UI now prominently displays `combined_red_flags` (imaging + therapy) in the Recommended Care panel. The order flow receives flags so that pharmacy can use express delivery when needed. Session state persists the final `result` to allow inspection and repeated testing.
+
+6) Rule-driven red-flag configuration
+- Location: `data/medical_rules.json`
+- What: Added `red_flags` section that includes:
+	- `symptoms`: a list of critical symptom keywords (e.g., chest pain, shortness of breath)
+	- `measurements`: named measurement rules with `operator`, `threshold`, and `message` (e.g., SpO2 < 92 => urgent attention)
+
+7) Tests
+- Location: `tests/test_imaging_red_flags.py`
+- What: New test that monkeypatches the xray processor to simulate severity 75% (6/8) and patient age 85, then asserts imaging agent sets `red_flags` and `red_flag_evidence`. Full test suite passes (20 tests on dev branch).
+
+8) Repository housekeeping
+- Removed accidental `tmp_x.png` and added it to `.gitignore`.
+
+How to test these changes quickly
+1. Run unit tests:
+
+```pwsh
+cd d:\DOWNLOADS\healthcare-assistant
+pytest -q
+```
+
+2. Run the Streamlit demo locally and reproduce the scenario:
+
+```pwsh
+cd d:\DOWNLOADS\healthcare-assistant
+streamlit run app.py
+```
+
+Fill the form with:
+- Age: 85
+- Allergies: ibuprofen
+- Notes: cough, low-grade fever
+- Upload a sample chest X-ray image and report (or use the sample files in `uploads/` if present)
+
+Expected behavior:
+- Imaging panel shows severity ~75% (Score: 6/8).
+- An alert box under "Recommended Care" displays combined red flags (imaging score >=70% and age >=80 messages).
+- Pharmacy shows express delivery fees & ETA.
+
+Where to change thresholds and rules
+- `data/medical_rules.json` is the single source for symptom keywords, allergy keywords, and measurement thresholds (SpO2, temperature). You may add imaging thresholds to this JSON later to make them configurable.
+
+Next recommended tasks (optional):
+- Promote imaging threshold and keyword lists into `data/medical_rules.json` (so non-code config controls escalation thresholds).
+- Add tests for impression keyword triggers and coordinator escalation behavior.
+- Improve `PharmacyAgent` peak-hour/adverse-weather logic using real data or toggles in `config/settings.yaml`.
+
+---
+
+If you'd like, I can:
+ - Add UML/Graphviz diagrams as separate images checked into `docs/` for richer visuals.
+ - Break this README into `docs/` pages (e.g., `docs/agents.md`, `docs/data.md`) and wire a small static site generator (MkDocs) for nicer browsing.
+ - Create a CONTRIBUTING.md with git workflow rules and a small pre-commit hook to block committing secrets.
+ - Tell me how you'd like the README expanded (e.g., more sequence diagrams per agent, concrete code snippets for each class, or adding a living architecture diagram) and I will update it.
+
+---
+
 If you'd like, I can:
 - Add UML/Graphviz diagrams as separate images checked into `docs/` for richer visuals.
 - Break this README into `docs/` pages (e.g., `docs/agents.md`, `docs/data.md`) and wire a small static site generator (MkDocs) for nicer browsing.
