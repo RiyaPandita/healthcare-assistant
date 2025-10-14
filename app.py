@@ -317,11 +317,13 @@ if st.session_state.get("assessment_done", False):
     with col2:
         st.markdown("#### Recommended Care")
         therapy_result = result.get("therapy", {})
-
-        # Display red flags prominently if present
-        red_flags = therapy_result.get("red_flags", [])
-        if red_flags:
-            st.error("⚠️ **Important Medical Alerts:**\n" + "\n".join([f"- {flag}" for flag in red_flags]))
+        # Display combined red flags (imaging + therapy) prominently if present
+        combined_flags = result.get("combined_red_flags") or []
+        # Fallback to therapy-only red flags for backward compatibility
+        if not combined_flags:
+            combined_flags = therapy_result.get("red_flags", [])
+        if combined_flags:
+            st.error("⚠️ **Important Medical Alerts:**\n" + "\n".join([f"- {flag}" for flag in combined_flags]))
 
         # (Rest of therapy display logic is unchanged)
         interaction_warnings = set()

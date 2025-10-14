@@ -109,25 +109,74 @@ class TherapyAgent(BaseAgent):
             
         return True, ""
 
-    def _check_red_flags(self, symptoms: List[str], medical_data: Dict) -> List[str]:
-        """Check for red flag symptoms and measurements"""
-        red_flags = []
-        red_flag_symptoms = self.medical_rules.get("red_flags", {}).get("symptoms", [])
-        red_flag_measurements = self.medical_rules.get("red_flags", {}).get("measurements", {})
+    def _check_red_flags(self, symptoms: List[str], medical_data: Dict, age: Optional[int] = None) -> List[str]:
+        """Check for red flag symptoms and measurements using rules from medical_rules.json.
 
-        # Check symptoms
+        The rules support symptom keywords and measurement rules with an operator,
+        threshold and a custom message. Age-based checks may also be present in rules
+        (handled here if configured).
+        """
+        red_flags: List[str] = []
+        rf_config = self.medical_rules.get("red_flags", {}) or {}
+        rf_symptoms = [s.lower() for s in rf_config.get("symptoms", [])]
+        rf_measurements = rf_config.get("measurements", {}) or {}
+
+        # Symptoms: match if any configured red-flag symptom substring is in the
+        # reported symptom string (case-insensitive).
         for symptom in symptoms:
-            if symptom in red_flag_symptoms:
-                red_flags.append(f"Warning: {symptom} requires immediate medical attention")
+            s_low = symptom.lower()
+            for rf in rf_symptoms:
+                if rf in s_low or s_low in rf:
+                    red_flags.append(f"Warning: {symptom} requires immediate medical attention")
+                    break
 
-        # Check measurements if available
-        measurements = medical_data.get("measurements", {})
-        for measure, threshold in red_flag_measurements.items():
-            if measure in measurements:
-                value = float(measurements[measure])
-                threshold_value = float(threshold.replace("<", "").replace(">", ""))
-                if (">" in threshold and value > threshold_value) or ("<" in threshold and value < threshold_value):
-                    red_flags.append(f"Warning: {measure} reading requires medical attention")
+        # Measurements: each measurement rule is expected to be an object like
+        # { "operator": "<", "threshold": 92, "message": "..." }
+        measurements = medical_data.get("measurements", {}) or {}
+        for measure_name, rule in rf_measurements.items():
+            # Normalise keys (e.g., 'spo2' vs 'SpO2') by lowercasing
+            if measure_name.lower() in (k.lower() for k in measurements.keys()):
+                # get measurement value by matching key case-insensitively
+                value = None
+                for k, v in measurements.items():
+                    if k.lower() == measure_name.lower():
+                        try:
+                            value = float(v)
+                        except Exception:
+                            value = None
+                        break
+
+                if value is None:
+                    continue
+
+                operator = rule.get("operator")
+                threshold = rule.get("threshold")
+                message = rule.get("message") or f"{measure_name} reading requires medical attention"
+
+                try:
+                    thr = float(threshold)
+                    if operator == ">" and value > thr:
+                        red_flags.append(message)
+                    elif operator == "<" and value < thr:
+                        red_flags.append(message)
+                except Exception:
+                    # If threshold parsing fails, skip this rule but log internally
+                    self.logger.debug(f"Invalid red_flag measurement rule for {measure_name}: {rule}")
+
+        # Age-based checks (optional): if rules include an 'age' section, apply it
+        age_rules = rf_config.get("age", {}) or {}
+        if age is not None and age_rules:
+            try:
+                min_age = age_rules.get("min")
+                max_age = age_rules.get("max")
+                msg = age_rules.get("message", "Age-based escalation recommended")
+                if min_age is not None and age >= int(min_age):
+                    red_flags.append(msg)
+                elif max_age is not None and age <= int(max_age):
+                    red_flags.append(msg)
+            except Exception:
+                # non-fatal
+                pass
 
         return red_flags
 
@@ -156,8 +205,8 @@ class TherapyAgent(BaseAgent):
             if not is_covid and validation_message:
                 warnings.append(validation_message)
             
-            # Check for red flags
-            red_flags = self._check_red_flags(symptoms, medical_data)
+            # Check for red flags (include age for potential age-based rules)
+            red_flags = self._check_red_flags(symptoms, medical_data, age)
             if red_flags:
                 return [], red_flags
             

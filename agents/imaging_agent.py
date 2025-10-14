@@ -161,6 +161,74 @@ class ImagingAgent(BaseAgent):
                     "impression": impression,
                 }
 
+                # Initialize red flag collection based on imaging, age and configured rules
+                red_flags = []
+                red_flag_evidence = []
+                try:
+                    # Load configured red-flag symptom keywords from rules if available
+                    rules_path = os.path.join(self.config.base_path, "data", "medical_rules.json")
+                    medical_rules = {}
+                    try:
+                        import json
+                        with open(rules_path) as rf_f:
+                            medical_rules = json.load(rf_f)
+                    except Exception:
+                        medical_rules = self.medical_settings.get('medical_rules', {}) or {}
+
+                    rf_symptoms = [s.lower() for s in medical_rules.get("red_flags", {}).get("symptoms", [])]
+
+                    # Compute percent severity (total out of max possible 8)
+                    max_total = 8.0
+                    percent = (float(total) / max_total) if max_total else 0.0
+                    if percent >= 0.7:
+                        msg = f"Imaging severity {percent*100:.0f}% (score {total}/{int(max_total)}) meets/exceeds 70% threshold"
+                        red_flags.append(msg)
+                        red_flag_evidence.append({"type": "imaging_score", "score": total, "percent": percent})
+
+                    # Age-based escalation: if patient age provided and >=80
+                    patient = payload.get("patient") or {}
+                    age = patient.get("age") if isinstance(patient, dict) else None
+                    if age is not None:
+                        try:
+                            if int(age) >= 80:
+                                red_flags.append(f"Patient age {age} >= 80: consider urgent geriatric review")
+                                red_flag_evidence.append({"type": "age", "age": int(age)})
+                        except Exception:
+                            pass
+
+                    # Check impression text for serious imaging keywords
+                    imp_low = (impression or "").lower()
+                    imaging_keywords = ("pneumonia", "consolidation", "ground glass", "pleural effusion", "pneumothorax", "tension pneumothorax", "air bronchogram")
+                    for kw in imaging_keywords:
+                        if kw in imp_low:
+                            red_flags.append(f"Imaging impression contains '{kw}' — consider escalation")
+                            red_flag_evidence.append({"type": "impression_keyword", "keyword": kw})
+
+                    # Check radiographic findings booleans
+                    if rf.get("pneumothorax"):
+                        red_flags.append("Pneumothorax noted on radiographic findings — immediate attention advised")
+                        red_flag_evidence.append({"type": "finding", "finding": "pneumothorax"})
+                    if rf.get("pleural_effusion"):
+                        red_flags.append("Pleural effusion noted on radiographic findings — consider urgent review")
+                        red_flag_evidence.append({"type": "finding", "finding": "pleural_effusion"})
+                    if rf.get("consolidation"):
+                        red_flags.append("Consolidation noted on radiographic findings — consider escalation")
+                        red_flag_evidence.append({"type": "finding", "finding": "consolidation"})
+
+                    # Also check configured red-flag symptoms (from medical_rules) against impression
+                    for rf_kw in rf_symptoms:
+                        if rf_kw and rf_kw in imp_low:
+                            red_flags.append(f"Impression contains red-flag keyword: {rf_kw}")
+                            red_flag_evidence.append({"type": "rule_keyword", "keyword": rf_kw})
+
+                except Exception:
+                    # non-fatal — continue
+                    pass
+
+                # Attach red flag results to output
+                output["red_flags"] = red_flags
+                output["red_flag_evidence"] = red_flag_evidence
+
                 # Add severity event
                 events.append(self.event("analysis_complete", {
                     "severity": mapped_label,

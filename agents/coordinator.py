@@ -24,9 +24,11 @@ class Coordinator:
         all_events += ing.events
         if "error" in ing.output:
             return {"error": ing.output["error"], "events": all_events}
-
         img = self.imaging.run(ing.output)
         all_events += img.events
+
+        # Collect imaging-sourced red flags so we can surface them and use them
+        img_red_flags = img.output.get("red_flags", []) if isinstance(img.output, dict) else []
 
         ther_input = {**ing.output, **img.output}
         ther = self.therapy.run(ther_input)
@@ -47,24 +49,29 @@ class Coordinator:
                     "drug_name": opt.get("drug_name"),
                     "qty": 1
                 })
-        
+
+        # Combine red flags from therapy and imaging for downstream agents
+        ther_reds = ther.output.get("red_flags", []) if isinstance(ther.output, dict) else []
+        combined_red_flags = list({*ther_reds, *img_red_flags})
+
         ph_input = {
             "pincode": input_payload.get("pincode"), 
             "items": items, 
-            "red_flags": ther.output.get("red_flags", [])
+            "red_flags": combined_red_flags
         }
         ph = self.pharmacy.run(ph_input)
         all_events += ph.events
 
         # check escalation
         top_prob = max(img.output.get("condition_probs", {}).values()) if img.output.get("condition_probs") else 0
-        red_flags = ther.output.get("red_flags", [])
-        need_escalation = (top_prob < CONFIDENCE_THRESHOLD) or bool(red_flags)
+        # Consider imaging-originated red flags as escalation triggers as well
+        need_escalation = (top_prob < CONFIDENCE_THRESHOLD) or bool(ther_reds) or bool(img_red_flags)
         escalation = {}
         if need_escalation:
             # include ingestion output (patient info) and imaging output when calling doctor
             # this ensures patient.age, allergies, symptoms, and pdf_text from ingestion are passed
-            doc_in = {**ing.output, **img.output, "red_flags": red_flags}
+            # Include combined red flags when calling the doctor
+            doc_in = {**ing.output, **img.output, "red_flags": combined_red_flags}
             esc = self.doctor.run(doc_in)
             all_events += esc.events
             escalation = esc.output
@@ -101,6 +108,7 @@ class Coordinator:
             "therapy": ther.output,
             "pharmacy": ph.output,
             "escalation": escalation,
+            "combined_red_flags": combined_red_flags,
             "order": {
                 "pharmacy_id": ph.output.get("pharmacy_id"),
                 "items": ph.output.get("items", []),

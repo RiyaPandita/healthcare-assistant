@@ -100,4 +100,31 @@
       "restrictions": ["High-dose NSAIDs"]
     }
   }
+  ,
+  "red_flags": {
+    "symptoms": [
+      "chest pain",
+      "shortness of breath",
+      "difficulty breathing",
+      "breathless",
+      "severe shortness of breath",
+      "altered mental status",
+      "syncope",
+      "severe bleeding",
+      "sudden vision loss",
+      "severe eye pain"
+    ],
+    "measurements": {
+      "spo2": {
+        "operator": "<",
+        "threshold": 92,
+        "message": "SpO2 below 92% — urgent medical attention recommended"
+      },
+      "temperature": {
+        "operator": ">",
+        "threshold": 40,
+        "message": "Very high fever — urgent evaluation recommended"
+      }
+    }
+  }
 }
