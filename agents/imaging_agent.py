@@ -97,9 +97,23 @@ class ImagingAgent(BaseAgent):
                 img = Image.open(xray_path).convert("RGB")
                 events.append(self.event("image_loaded", {"path": xray_path}))
 
-                # Process X-ray report if available
+                # Process X-ray report if available. Support either a file path (xray_report_path)
+                # or PDF bytes uploaded directly from the UI (xray_report_bytes).
                 xray_report_text = ""
-                if xray_report_path and os.path.exists(xray_report_path):
+                # Prefer bytes if provided by the UI
+                report_bytes = payload.get('xray_report_bytes')
+                if report_bytes:
+                    try:
+                        # report_bytes may be bytes or a base64 string; if str, assume bytes-like
+                        if isinstance(report_bytes, str):
+                            report_bytes = report_bytes.encode('utf-8')
+                        xray_report_text = extract_pdf_text(report_bytes)
+                        events.append(self.event("report_processed", {"source": "bytes"}))
+                    except Exception:
+                        xray_report_text = ""
+
+                # Fallback to file path on disk
+                if not xray_report_text and xray_report_path and os.path.exists(xray_report_path):
                     with open(xray_report_path, 'rb') as f:
                         xray_report_text = extract_pdf_text(f.read())
                     events.append(self.event("report_processed", {"path": xray_report_path}))
@@ -111,13 +125,15 @@ class ImagingAgent(BaseAgent):
                         prescription_text = extract_pdf_text(f.read())
                     events.append(self.event("prescription_processed", {"path": prescription_path}))
 
-                # Parse radiological findings from X-ray report
-                rf = parse_report(xray_report_text) if xray_report_text else {
-                    "ground_glass_opacity": False,
-                    "consolidation": False,
-                    "reticular_thickening": False,
-                    "pleural_effusion": False,
-                    "pneumothorax": False,
+                # Parse radiological findings from X-ray report. If no report is provided,
+                # use None for findings (unknown) so we don't accidentally assert absence.
+                report_absent = not bool(xray_report_text and xray_report_text.strip())
+                rf = parse_report(xray_report_text) if not report_absent else {
+                    "ground_glass_opacity": None,
+                    "consolidation": None,
+                    "reticular_thickening": None,
+                    "pleural_effusion": None,
+                    "pneumothorax": None,
                     "laterality": None,
                     "zones_involved": None,
                     "distribution": None,
@@ -139,8 +155,26 @@ class ImagingAgent(BaseAgent):
                 total = left_score + right_score
                 mapped, mapped_label = map_to_simple_scale(total)
 
-                # Generate impression
-                impression = generate_impression(rf, left_score, right_score, total, mapped, mapped_label)
+                # If there was no radiology report available, infer likely findings from
+                # the image-derived RALE buckets and make it explicit in the impression.
+                inferred_prefix = None
+                if report_absent:
+                    inferred_rf = {
+                        "ground_glass_opacity": (left_score_img >= 1 or right_score_img >= 1),
+                        "consolidation": (left_score_img >= 3 or right_score_img >= 3),
+                        "reticular_thickening": None,
+                        "pleural_effusion": None,
+                        "pneumothorax": None,
+                        "laterality": ("bilateral" if left_score_img >= 1 and right_score_img >= 1 else ("left" if left_score_img >= 1 else ("right" if right_score_img >= 1 else None))),
+                        "zones_involved": None,
+                        "distribution": None,
+                    }
+                    inferred_prefix = "Note: no formal radiology report available; image-based assessment suggests the following."
+                    # Use inferred findings for the impression text
+                    impression = inferred_prefix + " " + generate_impression(inferred_rf, left_score, right_score, total, mapped, mapped_label)
+                else:
+                    # Generate impression from the report (and image adjustments)
+                    impression = generate_impression(rf, left_score, right_score, total, mapped, mapped_label)
 
                 # Create comprehensive output
                 output = {
@@ -198,11 +232,33 @@ class ImagingAgent(BaseAgent):
 
                     # Check impression text for serious imaging keywords
                     imp_low = (impression or "").lower()
+                    # small helper: check if a keyword occurrence is negated in the surrounding text
+                    negation_phrases = [
+                        "no", "without", "absent", "none", "no evidence of", "not seen",
+                        "negative for", "no definite", "no significant", "ruled out", "excluded"
+                    ]
+
+                    def _is_negated_in_text(text: str, start: int, end: int) -> bool:
+                        window_before = text[max(0, start - 60):start]
+                        window_after = text[end:end + 60]
+                        combined = window_before + " " + window_after
+                        for np in negation_phrases:
+                            if np in combined:
+                                return True
+                        return False
+
                     imaging_keywords = ("pneumonia", "consolidation", "ground glass", "pleural effusion", "pneumothorax", "tension pneumothorax", "air bronchogram")
                     for kw in imaging_keywords:
-                        if kw in imp_low:
-                            red_flags.append(f"Imaging impression contains '{kw}' — consider escalation")
-                            red_flag_evidence.append({"type": "impression_keyword", "keyword": kw})
+                        start = 0
+                        while True:
+                            idx = imp_low.find(kw, start)
+                            if idx == -1:
+                                break
+                            end = idx + len(kw)
+                            if not _is_negated_in_text(imp_low, idx, end):
+                                red_flags.append(f"Imaging impression contains '{kw}' — consider escalation")
+                                red_flag_evidence.append({"type": "impression_keyword", "keyword": kw})
+                            start = end
 
                     # Check radiographic findings booleans
                     if rf.get("pneumothorax"):
@@ -217,9 +273,19 @@ class ImagingAgent(BaseAgent):
 
                     # Also check configured red-flag symptoms (from medical_rules) against impression
                     for rf_kw in rf_symptoms:
-                        if rf_kw and rf_kw in imp_low:
-                            red_flags.append(f"Impression contains red-flag keyword: {rf_kw}")
-                            red_flag_evidence.append({"type": "rule_keyword", "keyword": rf_kw})
+                        if not rf_kw:
+                            continue
+                        kw = rf_kw.lower()
+                        start = 0
+                        while True:
+                            idx = imp_low.find(kw, start)
+                            if idx == -1:
+                                break
+                            end = idx + len(kw)
+                            if not _is_negated_in_text(imp_low, idx, end):
+                                red_flags.append(f"Impression contains red-flag keyword: {kw}")
+                                red_flag_evidence.append({"type": "rule_keyword", "keyword": kw})
+                            start = end
 
                 except Exception:
                     # non-fatal — continue
