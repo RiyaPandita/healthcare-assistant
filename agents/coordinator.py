@@ -24,7 +24,12 @@ class Coordinator:
         all_events += ing.events
         if "error" in ing.output:
             return {"error": ing.output["error"], "events": all_events}
-        img = self.imaging.run(ing.output)
+
+        # Ensure the imaging agent receives both ingestion output and the original
+        # input payload (which may contain keys like 'xray_report_path' or
+        # 'xray_report_bytes' provided by the UI). Merge them so nothing is lost.
+        img_input = {**ing.output, **input_payload}
+        img = self.imaging.run(img_input)
         all_events += img.events
 
         # Collect imaging-sourced red flags so we can surface them and use them
