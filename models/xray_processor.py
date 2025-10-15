@@ -74,65 +74,216 @@ ZONES_PATTERNS = {
     "lower": r"\blower\b",
 }
 
+import io
+import logging
+import importlib.util
+# pdf2image and pytesseract are optional and require system packages
+# (poppler, tesseract). Import lazily inside extract_pdf_text to avoid
+# import-time failures on platforms like Streamlit Cloud where system
+# packages may be missing.
+
 def extract_pdf_text(pdf_bytes: bytes) -> str:
-    """Extract text from PDF using available parser"""
+    """
+    Extract text from a PDF file using the best available backend.
+    Automatically falls back to OCR if text extraction fails.
+    """
+
     text = []
-    
-    # Get PDF reader implementation
-    PdfReader = get_pdf_reader()
-    if not PdfReader:
-        logging.error("No PDF parser available")
-        return ""
-        
+
+    # --- 1️⃣ Preferred pure-text parsers ---
     try:
-        reader = PdfReader(io.BytesIO(pdf_bytes))
-        for page in reader.pages:
-            try:
+        # Try pypdf
+        if importlib.util.find_spec("pypdf"):
+            from pypdf import PdfReader
+            reader = PdfReader(io.BytesIO(pdf_bytes))
+            for page in reader.pages:
                 page_text = page.extract_text()
                 if page_text:
                     text.append(page_text)
-            except Exception as e:
-                logging.warning(f"Error extracting text from page: {str(e)}")
-                continue
+            logging.info("PDF text extracted using pypdf.")
     except Exception as e:
-        logging.error(f"Error processing PDF: {str(e)}")
-    
-    return "\n".join(text).lower()
+        logging.warning(f"pypdf extraction failed: {e}")
+
+    if not text:
+        try:
+            # Try PyPDF2
+            if importlib.util.find_spec("PyPDF2"):
+                from PyPDF2 import PdfReader
+                reader = PdfReader(io.BytesIO(pdf_bytes))
+                for page in reader.pages:
+                    page_text = page.extract_text()
+                    if page_text:
+                        text.append(page_text)
+                logging.info("PDF text extracted using PyPDF2.")
+        except Exception as e:
+            logging.warning(f"PyPDF2 extraction failed: {e}")
+
+    if not text:
+        try:
+            # Try pdfminer.six
+            if importlib.util.find_spec("pdfminer.high_level"):
+                from pdfminer.high_level import extract_text
+                page_text = extract_text(io.BytesIO(pdf_bytes))
+                if page_text:
+                    text.append(page_text)
+                logging.info("PDF text extracted using pdfminer.six.")
+        except Exception as e:
+            logging.warning(f"pdfminer.six extraction failed: {e}")
+
+    # --- 2️⃣ OCR fallback for scanned PDFs ---
+    if not text:
+        try:
+            try:
+                from pdf2image import convert_from_bytes
+            except Exception:
+                logging.warning("pdf2image unavailable; skipping OCR fallback (requires poppler).")
+                raise
+
+            try:
+                import pytesseract
+            except Exception:
+                logging.warning("pytesseract unavailable; skipping OCR fallback (requires tesseract).")
+                raise
+
+            images = convert_from_bytes(pdf_bytes)
+            for img in images:
+                ocr_text = pytesseract.image_to_string(img)
+                if ocr_text.strip():
+                    text.append(ocr_text)
+            logging.info("PDF text extracted using OCR fallback.")
+        except Exception as e:
+            logging.error(f"OCR fallback failed: {e}")
+
+    # --- 3️⃣ Final cleanup ---
+    final_text_raw = "\n".join(text)
+
+    # Normalize common unicode punctuation that commonly appears in reports
+    # (various hyphen/dash characters, minus sign, non-breaking hyphen, arrows)
+    final_text_norm = re.sub(r'[\u2010-\u2015\u2212\u2011]', '-', final_text_raw)
+    final_text_norm = final_text_norm.replace('\u2192', '->').replace('→', '->')
+
+    final_text = final_text_norm.lower().strip()
+    if not final_text.strip():
+        logging.warning("⚠️ No text could be extracted from the PDF.")
+    else:
+        logging.info(f"✅ Successfully extracted ~{len(final_text.split())} words from PDF.")
+
+    return final_text
+
+
+def extract_and_parse_pdf(pdf_bytes: bytes):
+    """
+    Convenience helper for UI: extract text from PDF bytes and return structured
+    parsed results including radiographic findings, RALE-like scores (if present),
+    mapped severity and a generated impression.
+
+    Returns a dict with keys: text, parsed_findings, left, right, total, mapped, mapped_label, impression
+    """
+    text = extract_pdf_text(pdf_bytes)
+    rf = parse_report(text)
+
+    # Attempt to find explicit RALE-like numeric scores in the text
+    left = right = 0
+    m_left = re.search(r'left\s*lung\s*[:\-]?\s*(\d)', text, flags=re.IGNORECASE)
+    if m_left:
+        left = int(m_left.group(1))
+    m_right = re.search(r'right\s*lung\s*[:\-]?\s*(\d)', text, flags=re.IGNORECASE)
+    if m_right:
+        right = int(m_right.group(1))
+
+    # fallback patterns
+    if not (left or right):
+        m = re.search(r'left lung:.*?(\d)', text, flags=re.IGNORECASE)
+        if m:
+            left = int(m.group(1))
+        m2 = re.search(r'right lung:.*?(\d)', text, flags=re.IGNORECASE)
+        if m2:
+            right = int(m2.group(1))
+
+    total = left + right
+    mapped, mapped_label = map_to_simple_scale(total)
+    impression = generate_impression(rf, left, right, total, mapped, mapped_label)
+
+    return {
+        'text': text,
+        'parsed_findings': rf,
+        'left': left,
+        'right': right,
+        'total': total,
+        'mapped': mapped,
+        'mapped_label': mapped_label,
+        'impression': impression,
+    }
 
 def parse_report(text: str):
     rf = {
-        "ground_glass_opacity": False,
-        "consolidation": False,
-        "reticular_thickening": False,
-        "pleural_effusion": False,
-        "pneumothorax": False,
+        "ground_glass_opacity": None,
+        "consolidation": None,
+        "reticular_thickening": None,
+        "pleural_effusion": None,
+        "pneumothorax": None,
         "laterality": None,
         "zones_involved": [],
         "distribution": None,
     }
 
+    # Normalize text: lowercase and normalize common unicode hyphen/minus characters
+    normalized_text = text.lower() if isinstance(text, str) else ''
+    # replace various hyphen/minus characters with ASCII hyphen
+    normalized_text = re.sub(r'[\u2010-\u2015\u2212\u2011]', '-', normalized_text)
+
+    # Helper to detect negation around a regex match
+    negation_words = ["no", "without", "absent", "none", "no evidence of", "not seen", "negative for", "no definite", "no significant"]
+
+    def _is_match_negated(m):
+        # check preceding text window and following window for negation cues
+        start, end = m.start(), m.end()
+        window_before = normalized_text[max(0, start - 60):start]
+        window_after = normalized_text[end:end + 60]
+        combined = window_before + " " + window_after
+        for w in negation_words:
+            if w in combined:
+                return True
+        return False
+
     for key, pat in FINDINGS_PATTERNS.items():
-        rf[key] = bool(re.search(pat, text))
+        found_any = False
+        found_positive = False
+        found_negated = False
+        for m in re.finditer(pat, normalized_text, flags=re.IGNORECASE):
+            found_any = True
+            if _is_match_negated(m):
+                found_negated = True
+            else:
+                found_positive = True
+
+        if found_positive:
+            rf[key] = True
+        elif found_negated:
+            rf[key] = False
+        else:
+            rf[key] = None
 
     # laterality
-    if re.search(LATERALITY_PATTERNS["bilateral"], text):
+    # laterality (use normalized_text)
+    if re.search(LATERALITY_PATTERNS["bilateral"], normalized_text, flags=re.IGNORECASE):
         rf["laterality"] = "bilateral"
-    elif re.search(LATERALITY_PATTERNS["unilateral_right"], text):
+    elif re.search(LATERALITY_PATTERNS["unilateral_right"], normalized_text, flags=re.IGNORECASE):
         rf["laterality"] = "right"
-    elif re.search(LATERALITY_PATTERNS["unilateral_left"], text):
+    elif re.search(LATERALITY_PATTERNS["unilateral_left"], normalized_text, flags=re.IGNORECASE):
         rf["laterality"] = "left"
 
     # zones
     zones = []
     for z, pat in ZONES_PATTERNS.items():
-        if re.search(pat, text):
+        if re.search(pat, normalized_text, flags=re.IGNORECASE):
             zones.append(z)
     rf["zones_involved"] = zones or None
 
     # distribution
     dist = None
     for d, pat in DISTRIBUTION_PATTERNS.items():
-        if re.search(pat, text):
+        if re.search(pat, normalized_text, flags=re.IGNORECASE):
             dist = d
             break
     rf["distribution"] = dist
@@ -209,22 +360,34 @@ def generate_impression(rf, left_score, right_score, total, mapped, mapped_label
         locs.append(f"{rf['distribution']} distribution")
 
     features = []
-    if rf.get("ground_glass_opacity"):
+    if rf.get("ground_glass_opacity") is True:
         features.append("ground-glass opacities")
-    if rf.get("consolidation"):
+    if rf.get("consolidation") is True:
         features.append("consolidation")
-    if rf.get("reticular_thickening"):
+    if rf.get("reticular_thickening") is True:
         features.append("reticular interstitial thickening")
-
+    # Construct findings sentence
     if features:
-        parts.append(f"Chest radiograph shows {', '.join(features)}" + 
-                    (f" with {', '.join(locs)}." if locs else "."))
+        parts.append(f"Chest radiograph shows {', '.join(features)}" + (f" with {', '.join(locs)}." if locs else "."))
     else:
-        parts.append("Chest radiograph shows no definite acute airspace abnormality by report.")
+        # If all major features are explicitly False, report no acute airspace abnormality
+        major_flags = [rf.get("ground_glass_opacity"), rf.get("consolidation"), rf.get("reticular_thickening")]
+        if all(flag is False for flag in major_flags):
+            parts.append("Chest radiograph shows no definite acute airspace abnormality by report.")
+        else:
+            # indeterminate if None or mixed -> use cautious phrasing
+            parts.append("Chest radiograph report does not clearly state acute airspace abnormality.")
 
-    if rf.get("pleural_effusion"):
-        parts.append("Small pleural effusion noted.")
-    if rf.get("pneumothorax"):
+    # Pleural effusion messaging
+    if rf.get("pleural_effusion") is True:
+        parts.append("Pleural effusion noted.")
+    elif rf.get("pleural_effusion") is False:
+        parts.append("No pleural effusion.")
+
+    # Pneumothorax messaging
+    if rf.get("pneumothorax") is True:
+        parts.append("Pneumothorax present.")
+    elif rf.get("pneumothorax") is False:
         parts.append("No pneumothorax.")
 
     parts.append(f"Severity estimate (rule-based): Left {left_score}/4, Right {right_score}/4; Total {total}/8.")
